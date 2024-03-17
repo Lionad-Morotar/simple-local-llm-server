@@ -1,0 +1,14 @@
+{
+  "name": "local-machine",
+  "version": "0.0.1",
+  "description": "workspace for local machine, including projects sync with OneDrive",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dayjs": "^1.11.10",
+    "koa": "^2.15.1",
+    "koa-bodyparser": "^4.4.1"
+  }
+}
