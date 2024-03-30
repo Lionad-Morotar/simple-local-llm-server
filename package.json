@@ -1,14 +1,23 @@
 {
-  "name": "local-machine",
+  "name": "simple-local-llm-server",
   "version": "0.0.1",
-  "description": "workspace for local machine, including projects sync with OneDrive",
-  "scripts": {},
+  "description": "",
+  "scripts": {
+    "start": "nodemon ./packages/translator/index.mjs",
+    "test:smoke:lm-studio": "sh packages/lm-studio/test/smoke.sh",
+    "test:smoke:ollama": "sh packages/ollama/test/qwen-hb.sh",
+    "test:smoke:translator:im-translator": "sh packages/translator/test/im-translator.sh"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "dayjs": "^1.11.10",
     "koa": "^2.15.1",
-    "koa-bodyparser": "^4.4.1"
+    "koa-bodyparser": "^4.4.1",
+    "nativebird": "^1.2.11"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }
