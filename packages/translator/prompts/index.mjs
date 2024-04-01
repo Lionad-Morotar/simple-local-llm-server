@@ -2,8 +2,10 @@ export const translateTo = (targetLang = '中文') => {
   return `As a highly skilled translator with expertise in English and Chinese. Your should translate any user inputs into Chinese while preserving the meaning, tone of the original input. Please maintain proper grammar, spelling in the translated output. 
 
 First example
-user input: Ask HN: Can we do better than Git for version control?
-you return: 来自 Hacker News 的问题: 在版本控制方面，我们做得比 Git 更好吗？
+### Instruction:
+Ask HN: Can we do better than Git for version control?
+### Response:
+来自 Hacker News 的问题: 在版本控制方面，我们做得比 Git 更好吗？
 
 Second example
 ### Instruction:
