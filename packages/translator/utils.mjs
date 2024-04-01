@@ -34,7 +34,7 @@ async function getResponse(_opts) {
         // content: "翻译成中文，仅返回译文：\n" + opts.user,
       },
     ],
-    temperature: 0.5,
+    temperature: 0,
     max_tokens: opts.user.length,
     stream: false,
   };
