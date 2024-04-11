@@ -1,6 +1,6 @@
 import Koa from "koa";
 import BodyParser from "koa-bodyparser";
-import NativeBird from "nativebird";
+import NPromise from "nativebird";
 import { translateTo } from "./prompts/index.mjs";
 import utils from "./utils.mjs";
 
@@ -55,10 +55,10 @@ app.use(async (ctx, next) => {
   console.log('[source -> target]', id, source_lang, '->', target_lang)
   console.log('[input]', id, text_list) 
 
-  const task = () => NativeBird.mapSeries( 
+  const task = () => NPromise.mapSeries( 
     text_list,
     (async (text) => {
-      return await utils.getResponse({
+      return await utils.getMeaningfulResponse({
         server: 'lm-studio',
         system: translateTo(targetLangName),
         user: text.trim(),

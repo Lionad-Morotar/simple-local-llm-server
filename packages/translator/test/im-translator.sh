@@ -6,5 +6,9 @@ curl http://localhost:14686/v1/chat/completions \
 -d '{ 
   "source_lang": "en",
   "target_lang": "zh",
-  "text_list": ["These little question-marked rascals that hang out at the end of your web addresses, casually sipping on ampersands, hold the power to modify, track, and even amuse your web pages."]
+  "text_list": [
+    "I myself have been playing with a pnpm-style linker. It hasnt shipped yet since Im cautious about adding complexity that could end up unmaintained, but given how small it is theres a decent chance we could add it in a later release as an experimental install mode.",
+    "Even for Yarn 1 users, migrating from 1 to 3 should be easier: we made it so that Yarn will detect when this situation arises to then automatically enable the {0} linker. That alone should address most of the problems you may have been hitting when attempting the upgrade - and for everything else, make sure to take a look at our Migration Guide which got significantly improved over the past year.",
+    "hello, world!"
+  ]
 }'

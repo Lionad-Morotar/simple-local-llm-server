@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import NPromise from "nativebird";
 
 let context = [];
 let responseTime;
@@ -34,7 +35,7 @@ async function getResponse(_opts) {
         // content: "翻译成中文，仅返回译文：\n" + opts.user,
       },
     ],
-    temperature: 0,
+    temperature: 0.5,
     max_tokens: opts.user.length,
     stream: false,
   };
@@ -53,7 +54,47 @@ async function getResponse(_opts) {
   const rets = response?.choices || []
   const ret = rets.find(x => x?.message?.role === 'assistant')
 
+  // console.log('[debug] ret', ret)
+
   return ret?.message?.content
+}
+
+// 容易碰到 Qwen 返回空字符，所以多次尝试
+async function getMeaningfulResponse(_opts) {
+  const getOpts = (inputOpts = {}) => Object.assign(
+    {
+      server: "lm-studio",
+      system: "chat with user",
+      user: "hello",
+    },
+    inputOpts
+  );
+  const opts = [
+    getOpts({
+      ..._opts,
+      user: _opts.user.trim(),
+    }),
+    getOpts({
+      ..._opts,
+      user: '请将以下内容翻译为中文：' + _opts.user.trim(),
+    }),
+    getOpts({
+      ..._opts,
+      user: 'TRANSLATE INTO CHINESE:' + _opts.user.trim(),
+    }),
+  ]
+  const findAsyncSequence = async (xs, fn) => {
+    for (const x of xs) {
+      const ret = await fn(x)
+      if (ret) {
+        return ret
+      }
+    }
+    return ''
+  }
+  return await findAsyncSequence(opts, async (opt) => {
+    return await getResponse(opt)
+  })
 }
 
 async function getMessage(prompt, model = "qwen:7b") {
@@ -145,6 +186,7 @@ export default {
   getTime,
   error,
   getResponse,
+  getMeaningfulResponse,
   getMessage,
   parseJsonStream,
   readLines,
