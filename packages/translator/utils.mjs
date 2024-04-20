@@ -1,5 +1,4 @@
 import dayjs from "dayjs";
-import NPromise from "nativebird";
 
 let context = [];
 let responseTime;
