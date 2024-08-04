@@ -33,6 +33,18 @@ const addTask = async (task) => {
 const app = new Koa();
 app.use(BodyParser());
 
+// * cors
+app.use(async (ctx, next)=> {
+  ctx.set('Access-Control-Allow-Origin', '*');
+  ctx.set('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With , yourHeaderFeild');
+  ctx.set('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+  if (ctx.method == 'OPTIONS') {
+    ctx.body = 200; 
+  } else {
+    await next();
+  }
+})
+
 app.use(async (ctx, next) => {
   const id = Math.random().toString(36).substring(7);
   let data = {};
@@ -45,6 +57,7 @@ app.use(async (ctx, next) => {
     ctx.response.status = 400;
     ctx.response.body = "Bad Request - Invalid JSON";
   }
+  // console.log('---- body', ctx.request)
 
   const { source_lang = "en", target_lang = "zh-CN", text_list = [] } = data; 
   const targetLangName = target_lang.includes('zh')
