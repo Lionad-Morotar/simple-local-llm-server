@@ -7,7 +7,8 @@
     "test:lm-studio:llm": "sh packages/lm-studio/test/smoke.sh",
     "test:lm-studio:embedding": "sh packages/lm-studio/test/embedding.sh",
     "test:ollama:llm": "sh packages/ollama/test/qwen-hb.sh",
-    "test:ollama:embedding": "sh packages/ollama/test/embedding.sh",
+    "test:ollama:embedding-nomic": "sh packages/ollama/test/embedding-nomic.sh",
+    "test:ollama:embedding-qwen3": "sh packages/ollama/test/embedding-qwen3.sh",
     "test:translate": "sh packages/translator/test/im-translator.sh"
   },
   "keywords": [],
