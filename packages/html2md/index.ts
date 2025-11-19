@@ -1,11 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { JSDOM } from "jsdom";
-import { Readability } from "@mozilla/readability";
-import TurndownService from "turndown";
+import { Worker } from "worker_threads";
 
 const HTML_DIR = path.join(__dirname, ".html");
 const MD_DIR = path.join(__dirname, ".md");
+const WORKER_COUNT = 2; // 双线程
 
 /**
  * 确保目录存在
@@ -26,36 +25,46 @@ function getHtmlFiles(dir: string): string[] {
 }
 
 /**
- * 转换单个 HTML 文件为 Markdown
+ * 检查文件是否已转换
  */
-function convertHtmlToMarkdown(htmlPath: string, mdPath: string): void {
-  const html = fs.readFileSync(htmlPath, "utf-8");
-  const dom = new JSDOM(html);
-  const reader = new Readability(dom.window.document);
-  const article = reader.parse();
-
-  if (!article) {
-    console.warn(`⚠️  无法解析文件: ${path.basename(htmlPath)}`);
-    return;
-  }
-
-  const turndown = new TurndownService({
-    headingStyle: "atx",
-    codeBlockStyle: "fenced",
-  });
-
-  const md = `# ${article.title}\n\n` + turndown.turndown(article.content);
-  fs.writeFileSync(mdPath, md);
+function isAlreadyConverted(htmlFilename: string): boolean {
+  const mdFilename = htmlFilename.replace(/\.html$/, ".md");
+  const mdPath = path.join(MD_DIR, mdFilename);
+  return fs.existsSync(mdPath);
 }
 
 /**
- * 批量转换 HTML 文件
+ * Worker 线程处理任务
  */
-function batchConvert(): void {
-  // 确保输出目录存在
+function processInWorker(
+  htmlPath: string,
+  mdPath: string
+): Promise<{ success: boolean; filename: string; error?: Error }> {
+  return new Promise((resolve) => {
+    const worker = new Worker(path.join(__dirname, "worker.js"), {
+      workerData: { htmlPath, mdPath },
+    });
+
+    worker.on("message", (result) => {
+      resolve(result);
+    });
+
+    worker.on("error", (error) => {
+      resolve({
+        success: false,
+        filename: path.basename(htmlPath),
+        error,
+      });
+    });
+  });
+}
+
+/**
+ * 批量转换 HTML 文件（并发）
+ */
+async function batchConvert(): Promise<void> {
   ensureDirectoryExists(MD_DIR);
 
-  // 获取所有 HTML 文件
   const htmlFiles = getHtmlFiles(HTML_DIR);
   const total = htmlFiles.length;
 
@@ -64,23 +73,62 @@ function batchConvert(): void {
     return;
   }
 
-  console.log(`🚀 开始转换 ${total} 个文件...\n`);
-
-  // 遍历转换
-  htmlFiles.forEach((filename, index) => {
-    const htmlPath = path.join(HTML_DIR, filename);
-    const mdFilename = filename.replace(/\.html$/, ".md");
-    const mdPath = path.join(MD_DIR, mdFilename);
-
-    try {
-      convertHtmlToMarkdown(htmlPath, mdPath);
-      console.log(`✅ [${index + 1}/${total}] ${filename} → ${mdFilename}`);
-    } catch (error) {
-      console.error(`❌ [${index + 1}/${total}] ${filename} 转换失败:`, error);
+  // 过滤已转换的文件
+  const filesToConvert = htmlFiles.filter((filename) => {
+    if (isAlreadyConverted(filename)) {
+      console.log(`⏭️  跳过已转换: ${filename}`);
+      return false;
     }
+    return true;
   });
 
-  console.log(`\n🎉 转换完成！共处理 ${total} 个文件`);
+  const toConvertCount = filesToConvert.length;
+  const skippedCount = total - toConvertCount;
+
+  if (toConvertCount === 0) {
+    console.log("✨ 所有文件已转换完成");
+    return;
+  }
+
+  console.log(
+    `🚀 开始转换 ${toConvertCount} 个文件 (跳过 ${skippedCount} 个已转换)\n`
+  );
+
+  let completed = 0;
+  const tasks: Promise<any>[] = [];
+
+  // 使用双线程并发处理
+  for (let i = 0; i < filesToConvert.length; i += WORKER_COUNT) {
+    const batch = filesToConvert.slice(i, i + WORKER_COUNT);
+
+    const batchTasks = batch.map((filename) => {
+      const htmlPath = path.join(HTML_DIR, filename);
+      const mdFilename = filename.replace(/\.html$/, ".md");
+      const mdPath = path.join(MD_DIR, mdFilename);
+
+      return processInWorker(htmlPath, mdPath).then((result) => {
+        completed++;
+        if (result.success) {
+          console.log(
+            `✅ [${completed}/${toConvertCount}] ${filename} → ${mdFilename}`
+          );
+        } else {
+          console.error(
+            `❌ [${completed}/${toConvertCount}] ${filename} 转换失败:`,
+            result.error
+          );
+        }
+        return result;
+      });
+    });
+
+    tasks.push(...batchTasks);
+    await Promise.all(batchTasks);
+  }
+
+  console.log(
+    `\n🎉 转换完成！共处理 ${toConvertCount} 个文件，跳过 ${skippedCount} 个`
+  );
 }
 
 // 执行转换
