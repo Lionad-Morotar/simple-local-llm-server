@@ -4,7 +4,9 @@ import { Worker } from "worker_threads";
 
 const HTML_DIR = path.join(__dirname, ".html");
 const MD_DIR = path.join(__dirname, ".md");
-const WORKER_COUNT = 2; // 双线程
+const CONFIG_DIR = path.join(__dirname, ".config");
+const ERROR_LOG_FILE = path.join(CONFIG_DIR, "error.json");
+const WORKER_COUNT = 10;
 
 /**
  * 确保目录存在
@@ -34,6 +36,45 @@ function isAlreadyConverted(htmlFilename: string): boolean {
 }
 
 /**
+ * 读取错误记录
+ */
+function getErrorList(): string[] {
+  try {
+    if (fs.existsSync(ERROR_LOG_FILE)) {
+      const content = fs.readFileSync(ERROR_LOG_FILE, "utf-8");
+      return JSON.parse(content);
+    }
+  } catch (error) {
+    console.error("读取错误记录失败:", error);
+  }
+  return [];
+}
+
+/**
+ * 添加错误记录
+ */
+function addErrorFile(filename: string, _error: any): void {
+  try {
+    ensureDirectoryExists(CONFIG_DIR);
+    const errorList = getErrorList();
+    if (!errorList.includes(filename)) {
+      errorList.push(filename);
+      fs.writeFileSync(ERROR_LOG_FILE, JSON.stringify(errorList, null, 2));
+    }
+  } catch (err) {
+    console.error("保存错误记录失败:", err);
+  }
+}
+
+/**
+ * 检查文件是否在错误列表中
+ */
+function isErrorFile(filename: string): boolean {
+  const errorList = getErrorList();
+  return errorList.includes(filename);
+}
+
+/**
  * Worker 线程处理任务
  */
 function processInWorker(
@@ -41,20 +82,38 @@ function processInWorker(
   mdPath: string
 ): Promise<{ success: boolean; filename: string; error?: Error }> {
   return new Promise((resolve) => {
+    let resolved = false;
     const worker = new Worker(path.join(__dirname, "worker.js"), {
       workerData: { htmlPath, mdPath },
     });
 
-    worker.on("message", (result) => {
+    const cleanup = (result: { success: boolean; filename: string; error?: Error }) => {
+      if (resolved) return;
+      resolved = true;
+      worker.terminate().catch(() => {});
       resolve(result);
+    };
+
+    worker.on("message", (result) => {
+      cleanup(result);
     });
 
     worker.on("error", (error) => {
-      resolve({
+      cleanup({
         success: false,
         filename: path.basename(htmlPath),
         error,
       });
+    });
+
+    worker.on("exit", (code) => {
+      if (code !== 0 && !resolved) {
+        cleanup({
+          success: false,
+          filename: path.basename(htmlPath),
+          error: new Error(`Worker stopped with exit code ${code}`),
+        });
+      }
     });
   });
 }
@@ -73,10 +132,14 @@ async function batchConvert(): Promise<void> {
     return;
   }
 
-  // 过滤已转换的文件
+  // 过滤已转换的文件和出错的文件
   const filesToConvert = htmlFiles.filter((filename) => {
     if (isAlreadyConverted(filename)) {
       console.log(`⏭️  跳过已转换: ${filename}`);
+      return false;
+    }
+    if (isErrorFile(filename)) {
+      console.log(`⚠️  跳过出错文件: ${filename}`);
       return false;
     }
     return true;
@@ -95,36 +158,54 @@ async function batchConvert(): Promise<void> {
   );
 
   let completed = 0;
-  const tasks: Promise<any>[] = [];
+  let currentIndex = 0;
 
-  // 使用双线程并发处理
-  for (let i = 0; i < filesToConvert.length; i += WORKER_COUNT) {
-    const batch = filesToConvert.slice(i, i + WORKER_COUNT);
+  // 工作池：控制并发数量
+  const processNext = async (): Promise<void> => {
+    if (currentIndex >= filesToConvert.length) {
+      return;
+    }
 
-    const batchTasks = batch.map((filename) => {
-      const htmlPath = path.join(HTML_DIR, filename);
-      const mdFilename = filename.replace(/\.html$/, ".md");
-      const mdPath = path.join(MD_DIR, mdFilename);
+    const index = currentIndex++;
+    const filename = filesToConvert[index];
+    const htmlPath = path.join(HTML_DIR, filename);
+    const mdFilename = filename.replace(/\.html$/, ".md");
+    const mdPath = path.join(MD_DIR, mdFilename);
 
-      return processInWorker(htmlPath, mdPath).then((result) => {
-        completed++;
-        if (result.success) {
-          console.log(
-            `✅ [${completed}/${toConvertCount}] ${filename} → ${mdFilename}`
-          );
-        } else {
-          console.error(
-            `❌ [${completed}/${toConvertCount}] ${filename} 转换失败:`,
-            result.error
-          );
-        }
-        return result;
-      });
-    });
+    try {
+      const result = await processInWorker(htmlPath, mdPath);
+      completed++;
+      
+      if (result.success) {
+        console.log(
+          `✅ [${completed}/${toConvertCount}] ${filename} → ${mdFilename}`
+        );
+      } else {
+        console.error(
+          `❌ [${completed}/${toConvertCount}] ${filename} 转换失败:`,
+          result.error
+        );
+        addErrorFile(filename, result.error);
+      }
+    } catch (error) {
+      completed++;
+      console.error(
+        `❌ [${completed}/${toConvertCount}] ${filename} 处理异常:`,
+        error
+      );
+      addErrorFile(filename, error);
+    }
 
-    tasks.push(...batchTasks);
-    await Promise.all(batchTasks);
-  }
+    // 继续处理下一个文件
+    await processNext();
+  };
+
+  // 启动工作池
+  const workers = Array(Math.min(WORKER_COUNT, filesToConvert.length))
+    .fill(0)
+    .map(() => processNext());
+
+  await Promise.all(workers);
 
   console.log(
     `\n🎉 转换完成！共处理 ${toConvertCount} 个文件，跳过 ${skippedCount} 个`
