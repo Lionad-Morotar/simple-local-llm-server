@@ -1,12 +1,16 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { Worker } from "worker_threads";
 
 const HTML_DIR = path.join(__dirname, ".html");
 const MD_DIR = path.join(__dirname, ".md");
 const CONFIG_DIR = path.join(__dirname, ".config");
 const ERROR_LOG_FILE = path.join(CONFIG_DIR, "error.json");
-const WORKER_COUNT = 10;
+const TARGET_CPU_USAGE = 0.8; // 目标 CPU 使用率 80%
+const MIN_WORKERS = 2;
+const MAX_WORKERS = os.cpus().length * 2;
+let WORKER_COUNT = Math.min(10, MAX_WORKERS);
 
 /**
  * 确保目录存在
@@ -72,6 +76,66 @@ function addErrorFile(filename: string, _error: any): void {
 function isErrorFile(filename: string): boolean {
   const errorList = getErrorList();
   return errorList.includes(filename);
+}
+
+/**
+ * 获取当前 CPU 使用率
+ */
+function getCPUUsage(): Promise<number> {
+  return new Promise((resolve) => {
+    const startMeasure = os.cpus();
+    
+    setTimeout(() => {
+      const endMeasure = os.cpus();
+      let totalIdle = 0;
+      let totalTick = 0;
+
+      for (let i = 0; i < startMeasure.length; i++) {
+        const start = startMeasure[i].times;
+        const end = endMeasure[i].times;
+
+        const idle = end.idle - start.idle;
+        const total =
+          end.user +
+          end.nice +
+          end.sys +
+          end.idle +
+          end.irq -
+          (start.user + start.nice + start.sys + start.idle + start.irq);
+
+        totalIdle += idle;
+        totalTick += total;
+      }
+
+      const usage = 1 - totalIdle / totalTick;
+      resolve(usage);
+    }, 100);
+  });
+}
+
+/**
+ * 动态调整 Worker 数量
+ */
+async function adjustWorkerCount(activeWorkers: number): Promise<number> {
+  const cpuUsage = await getCPUUsage();
+  let newWorkerCount = WORKER_COUNT;
+
+  if (cpuUsage < TARGET_CPU_USAGE - 0.1 && WORKER_COUNT < MAX_WORKERS) {
+    // CPU 使用率低于 70%，增加 Worker
+    newWorkerCount = Math.min(WORKER_COUNT + 2, MAX_WORKERS);
+    if (newWorkerCount !== WORKER_COUNT) {
+      console.log(`📈 CPU 使用率 ${(cpuUsage * 100).toFixed(1)}%，增加并发数: ${WORKER_COUNT} → ${newWorkerCount}`);
+    }
+  } else if (cpuUsage > TARGET_CPU_USAGE + 0.1 && WORKER_COUNT > MIN_WORKERS) {
+    // CPU 使用率高于 90%，减少 Worker
+    newWorkerCount = Math.max(WORKER_COUNT - 1, MIN_WORKERS, activeWorkers);
+    if (newWorkerCount !== WORKER_COUNT) {
+      console.log(`📉 CPU 使用率 ${(cpuUsage * 100).toFixed(1)}%，减少并发数: ${WORKER_COUNT} → ${newWorkerCount}`);
+    }
+  }
+
+  WORKER_COUNT = newWorkerCount;
+  return newWorkerCount;
 }
 
 /**
@@ -154,58 +218,88 @@ async function batchConvert(): Promise<void> {
   }
 
   console.log(
-    `🚀 开始转换 ${toConvertCount} 个文件 (跳过 ${skippedCount} 个已转换)\n`
+    `🚀 开始转换 ${toConvertCount} 个文件 (跳过 ${skippedCount} 个已转换)`
   );
+  console.log(`💻 CPU 核心数: ${os.cpus().length}，初始并发数: ${WORKER_COUNT}\n`);
 
   let completed = 0;
   let currentIndex = 0;
+  let activeWorkers = 0;
+  const workerPromises = new Set<Promise<void>>();
+  let lastAdjustTime = Date.now();
 
   // 工作池：控制并发数量
   const processNext = async (): Promise<void> => {
-    if (currentIndex >= filesToConvert.length) {
-      return;
-    }
-
-    const index = currentIndex++;
-    const filename = filesToConvert[index];
-    const htmlPath = path.join(HTML_DIR, filename);
-    const mdFilename = filename.replace(/\.html$/, ".md");
-    const mdPath = path.join(MD_DIR, mdFilename);
-
-    try {
-      const result = await processInWorker(htmlPath, mdPath);
-      completed++;
-      
-      if (result.success) {
-        console.log(
-          `✅ [${completed}/${toConvertCount}] ${filename} → ${mdFilename}`
-        );
-      } else {
-        console.error(
-          `❌ [${completed}/${toConvertCount}] ${filename} 转换失败:`,
-          result.error
-        );
-        addErrorFile(filename, result.error);
+    while (currentIndex < filesToConvert.length) {
+      // 检查是否需要调整 Worker 数量（每 5 秒检查一次）
+      if (Date.now() - lastAdjustTime > 5000 && completed > 0) {
+        lastAdjustTime = Date.now();
+        const newWorkerCount = await adjustWorkerCount(activeWorkers);
+        
+        // 如果增加了并发数，启动新的 Worker
+        if (newWorkerCount > activeWorkers) {
+          const additionalWorkers = newWorkerCount - activeWorkers;
+          for (let i = 0; i < additionalWorkers && currentIndex < filesToConvert.length; i++) {
+            const promise = processNext();
+            workerPromises.add(promise);
+            promise.finally(() => workerPromises.delete(promise));
+          }
+        }
       }
-    } catch (error) {
-      completed++;
-      console.error(
-        `❌ [${completed}/${toConvertCount}] ${filename} 处理异常:`,
-        error
-      );
-      addErrorFile(filename, error);
-    }
 
-    // 继续处理下一个文件
-    await processNext();
+      // 如果当前活跃 Worker 超过限制，等待
+      if (activeWorkers >= WORKER_COUNT) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        continue;
+      }
+
+      const index = currentIndex++;
+      if (index >= filesToConvert.length) break;
+
+      const filename = filesToConvert[index];
+      const htmlPath = path.join(HTML_DIR, filename);
+      const mdFilename = filename.replace(/\.html$/, ".md");
+      const mdPath = path.join(MD_DIR, mdFilename);
+
+      activeWorkers++;
+
+      try {
+        const result = await processInWorker(htmlPath, mdPath);
+        completed++;
+        
+        if (result.success) {
+          console.log(
+            `✅ [${completed}/${toConvertCount}] ${filename} → ${mdFilename}`
+          );
+        } else {
+          console.error(
+            `❌ [${completed}/${toConvertCount}] ${filename} 转换失败:`,
+            result.error
+          );
+          addErrorFile(filename, result.error);
+        }
+      } catch (error) {
+        completed++;
+        console.error(
+          `❌ [${completed}/${toConvertCount}] ${filename} 处理异常:`,
+          error
+        );
+        addErrorFile(filename, error);
+      } finally {
+        activeWorkers--;
+      }
+    }
   };
 
-  // 启动工作池
-  const workers = Array(Math.min(WORKER_COUNT, filesToConvert.length))
-    .fill(0)
-    .map(() => processNext());
+  // 启动初始工作池
+  const initialWorkerCount = Math.min(WORKER_COUNT, filesToConvert.length);
+  for (let i = 0; i < initialWorkerCount; i++) {
+    const promise = processNext();
+    workerPromises.add(promise);
+    promise.finally(() => workerPromises.delete(promise));
+  }
 
-  await Promise.all(workers);
+  await Promise.all(Array.from(workerPromises));
 
   console.log(
     `\n🎉 转换完成！共处理 ${toConvertCount} 个文件，跳过 ${skippedCount} 个`
