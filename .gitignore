@@ -1,2 +1,5 @@
 .DS_Store
 node_modules/
+.html
+.md
+.vscode/code-counter

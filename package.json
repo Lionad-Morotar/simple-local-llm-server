@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "description": "",
   "scripts": {
-    "start": "nodemon ./packages/translator/index.mjs",
+    "start:translate": "nodemon ./packages/translator/index.mjs",
+    "start:html2md": "tsx ./packages/html2md/index.ts",
     "test:lm-studio:llm": "sh packages/lm-studio/test/smoke.sh",
     "test:lm-studio:embedding": "sh packages/lm-studio/test/embedding.sh",
     "test:ollama:qwen3": "sh packages/ollama/test/qwen3.sh",
@@ -15,12 +16,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "dayjs": "^1.11.10",
+    "jsdom": "^27.2.0",
     "koa": "^2.15.1",
     "koa-bodyparser": "^4.4.1",
-    "nativebird": "^1.2.11"
+    "nativebird": "^1.2.11",
+    "turndown": "^7.2.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "@types/jsdom": "^27.0.0",
+    "@types/node": "^24.10.1",
+    "@types/turndown": "^5.0.6",
+    "nodemon": "^3.1.0",
+    "tsx": "^4.20.6"
   }
 }
