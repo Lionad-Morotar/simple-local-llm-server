@@ -96,18 +96,22 @@ function smartMergeLines(text: string): string {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
 
-    // 空行表示段落结束
-    if (line === "") {
-      if (currentParagraph.length > 0) {
-        // 合并当前段落的所有行
-        result.push(currentParagraph.join(""));
-        currentParagraph = [];
-      }
+    // 过滤页码（纯数字行，通常是页码）
+    if (/^\d+$/.test(line) && line.length <= 4) {
       continue;
     }
 
-    // 过滤页码（纯数字行，通常是页码）
-    if (/^\d+$/.test(line) && line.length <= 4) {
+    // 空行处理：只有当前段落以句号等结束时才真正结束段落
+    if (line === "") {
+      const prevLine = currentParagraph[currentParagraph.length - 1];
+      const prevEndsWithPunctuation = prevLine && /[。！？；]$/.test(prevLine);
+      
+      if (currentParagraph.length > 0 && prevEndsWithPunctuation) {
+        // 句子完整，结束段落
+        result.push(currentParagraph.join(""));
+        currentParagraph = [];
+      }
+      // 如果句子未完成，忽略空行，继续累积
       continue;
     }
 
