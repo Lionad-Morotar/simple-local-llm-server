@@ -1,4 +1,4 @@
-# Local LLM Tool Sets
+# Local LLM Toolset
 
 ## 📦 Packages
 
@@ -40,3 +40,12 @@ pnpm start:md2txt
 ```
 
 详见: [packages/md2txt/README.md](packages/md2txt/README.md)
+
+### ✂️ Text-Segment
+智能文本分段工具（语义分段 + JSON 输出）
+
+```bash
+pnpm start:text-segment
+```
+
+详见: [packages/text-segment/README.md](packages/text-segment/README.md)
