@@ -75,10 +75,83 @@ function markdownToText(markdown: string): string {
     .map((line) => line.trim())
     .join("\n");
 
+  // 智能合并行：将非空行合并（除非遇到明确的段落分隔）
+  text = smartMergeLines(text);
+
   // 移除开头和结尾的空行
   text = text.trim();
 
   return text;
+}
+
+/**
+ * 智能合并行：将被错误拆分的行合并在一起
+ * 保留明确的段落分隔（空行），但合并同一段落内的行
+ */
+function smartMergeLines(text: string): string {
+  const lines = text.split("\n");
+  const result: string[] = [];
+  let currentParagraph: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    // 空行表示段落结束
+    if (line === "") {
+      if (currentParagraph.length > 0) {
+        // 合并当前段落的所有行
+        result.push(currentParagraph.join(""));
+        currentParagraph = [];
+      }
+      continue;
+    }
+
+    // 过滤页码（纯数字行，通常是页码）
+    if (/^\d+$/.test(line) && line.length <= 4) {
+      continue;
+    }
+
+    // 检查是否是标题或特殊行（需要独立成行）
+    const isTitle =
+      /^[第\d一二三四五六七八九十百千万]+[章节]/.test(line) || // 章节标题
+      /^[（(]?\d{4}\s*年/.test(line) || // 日期行
+      /^目\s*录$/.test(line) || // 目录
+      /^附\s*则$/.test(line); // 附则
+
+    // 检查是否是条款开头（第X条）
+    const isArticleStart = /^第[一二三四五六七八九十百千万\d]+条\s/.test(line);
+
+    // 检查上一行是否以完整句子结束
+    const prevLine = currentParagraph[currentParagraph.length - 1];
+    const prevEndsWithPunctuation = prevLine && /[。！？；]$/.test(prevLine);
+
+    if (isTitle) {
+      // 标题独立成行
+      if (currentParagraph.length > 0) {
+        result.push(currentParagraph.join(""));
+        currentParagraph = [];
+      }
+      result.push(line);
+    } else if (isArticleStart && (currentParagraph.length === 0 || prevEndsWithPunctuation)) {
+      // 条款开头，如果前面有内容且结束了，就新起一段
+      if (currentParagraph.length > 0) {
+        result.push(currentParagraph.join(""));
+        currentParagraph = [];
+      }
+      currentParagraph.push(line);
+    } else {
+      // 普通行，累积到当前段落
+      currentParagraph.push(line);
+    }
+  }
+
+  // 处理最后一个段落
+  if (currentParagraph.length > 0) {
+    result.push(currentParagraph.join(""));
+  }
+
+  // 用双换行连接段落
+  return result.join("\n\n");
 }
 
 /**
