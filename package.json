@@ -5,6 +5,8 @@
   "scripts": {
     "start:translate": "nodemon ./packages/translator/index.mjs",
     "start:html2md": "tsx ./packages/html2md/index.ts",
+    "start:pdf2md": "tsx ./packages/pdf2md/index.ts",
+    "start:docs": "http-server ./docs -c-1",
     "test:lm-studio:llm": "sh packages/lm-studio/test/smoke.sh",
     "test:lm-studio:embedding": "sh packages/lm-studio/test/embedding.sh",
     "test:ollama:qwen3": "sh packages/ollama/test/qwen3.sh",
@@ -22,6 +24,8 @@
     "koa": "^2.15.1",
     "koa-bodyparser": "^4.4.1",
     "nativebird": "^1.2.11",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^2.4.5",
     "turndown": "^7.2.2"
   },
   "devDependencies": {
