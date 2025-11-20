@@ -4,6 +4,7 @@ import os from "os";
 import { Worker } from "worker_threads";
 import { processPdf } from "./pdfProcessor";
 import { LockManager } from "./lockManager";
+import { DoneManager, type OCRMode } from "./doneManager";
 
 const PDF_DIR = path.join(__dirname, ".pdf");
 const PROCESSED_DIR = path.join(__dirname, ".processed");
@@ -11,12 +12,18 @@ const MD_DIR = path.join(__dirname, ".md");
 const CONFIG_DIR = path.join(__dirname, ".config");
 const ERROR_LOG_FILE = path.join(CONFIG_DIR, "error.json");
 const TARGET_CPU_USAGE = 0.8; // 目标 CPU 使用率 80%
-const MIN_WORKERS = 2;
+const MIN_WORKERS = 1;
 const MAX_WORKERS = os.cpus().length * 2;
-let WORKER_COUNT = Math.min(10, MAX_WORKERS);
+let WORKER_COUNT = Math.min(1, MAX_WORKERS);
 
-// 初始化锁定管理器
+// 配置选项
+const USE_OCR = process.env.USE_OCR === "true"; // 是否强制使用 OCR
+const AUTO_DETECT_OCR = process.env.AUTO_DETECT_OCR !== "false"; // 是否自动检测（默认开启）
+const OCR_LANGUAGE = process.env.OCR_LANGUAGE || "chi_sim+eng"; // OCR 语言
+
+// 初始化管理器
 const lockManager = new LockManager(CONFIG_DIR);
+const doneManager = new DoneManager(CONFIG_DIR);
 
 /**
  * 确保目录存在
@@ -35,15 +42,6 @@ function getPdfFiles(dir: string): string[] {
     return [];
   }
   return fs.readdirSync(dir).filter((file) => file.endsWith(".pdf"));
-}
-
-/**
- * 检查文件是否已转换
- */
-function isAlreadyConverted(pdfFilename: string): boolean {
-  const mdFilename = pdfFilename.replace(/\.pdf$/, ".md");
-  const mdPath = path.join(MD_DIR, mdFilename);
-  return fs.existsSync(mdPath);
 }
 
 /**
@@ -219,8 +217,10 @@ async function batchConvert(): Promise<void> {
 
   // 过滤已转换、加密和出错的文件
   const filesToConvert = pdfFiles.filter((filename) => {
-    if (isAlreadyConverted(filename)) {
-      console.log(`⏭️  跳过已转换: ${filename}`);
+    if (doneManager.isDone(filename)) {
+      const record = doneManager.getRecord(filename);
+      const ocrTag = record ? ` [OCR: ${record.ocrMode}]` : "";
+      console.log(`⏭️  跳过已转换: ${filename}${ocrTag}`);
       return false;
     }
     if (lockManager.isLocked(filename)) {
@@ -295,11 +295,15 @@ async function batchConvert(): Promise<void> {
       activeWorkers++;
 
       try {
-        // 第一步：处理 PDF（检查加密、删除图片、删除页眉页脚）
+        // 第一步：处理 PDF（检查加密、提取文本、删除页眉页脚）
         console.log(
           `🔄 [${completed + 1}/${toConvertCount}] 处理 PDF: ${filename}`
         );
-        const processResult = await processPdf(pdfPath, PROCESSED_DIR);
+        const processResult = await processPdf(pdfPath, PROCESSED_DIR, {
+          useOCR: USE_OCR,
+          autoDetectOCR: AUTO_DETECT_OCR,
+          ocrLanguage: OCR_LANGUAGE,
+        });
 
         if (!processResult.success) {
           completed++;
@@ -327,8 +331,22 @@ async function batchConvert(): Promise<void> {
         completed++;
 
         if (result.success) {
+          // 确定 OCR 模式
+          let ocrMode: OCRMode;
+          if (USE_OCR) {
+            ocrMode = "yes";
+          } else if (!AUTO_DETECT_OCR) {
+            ocrMode = "no";
+          } else {
+            ocrMode = processResult.usedOCR ? "auto" : "no";
+          }
+
+          // 记录到 done.json
+          doneManager.addDone(filename, ocrMode, mdPath);
+
+          const ocrTag = processResult.usedOCR ? " [OCR]" : "";
           console.log(
-            `✅ [${completed}/${toConvertCount}] ${filename} → ${mdFilename}`
+            `✅ [${completed}/${toConvertCount}] ${filename} → ${mdFilename}${ocrTag}`
           );
           // 删除临时文本文件
           if (fs.existsSync(processResult.processedPath!)) {
@@ -368,10 +386,20 @@ async function batchConvert(): Promise<void> {
     `\n🎉 转换完成！共处理 ${toConvertCount} 个文件，跳过 ${skippedCount} 个`
   );
 
-  // 显示加密文件统计
+  // 显示统计信息
+  const stats = doneManager.getStats();
   const lockedCount = lockManager.getLockedCount();
+  
+  if (stats.total > 0) {
+    console.log(`\n📊 转换统计:`);
+    console.log(`   总计: ${stats.total} 个文件`);
+    console.log(`   OCR 强制: ${stats.byOcrMode.yes} 个`);
+    console.log(`   OCR 自动检测: ${stats.byOcrMode.auto} 个`);
+    console.log(`   标准提取: ${stats.byOcrMode.no} 个`);
+  }
+  
   if (lockedCount > 0) {
-    console.log(`🔒 检测到 ${lockedCount} 个加密文件，已记录到 .config/lock.json`);
+    console.log(`\n🔒 检测到 ${lockedCount} 个加密文件，已记录到 .config/lock.json`);
   }
 }
 

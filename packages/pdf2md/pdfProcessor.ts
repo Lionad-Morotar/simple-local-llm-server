@@ -3,12 +3,20 @@ import path from "path";
 import { PDFDocument } from "pdf-lib";
 // @ts-ignore
 import { PDFParse } from "pdf-parse";
+import { OCRProcessor } from "./ocrProcessor";
 
 export interface ProcessResult {
   success: boolean;
   isEncrypted?: boolean;
   processedPath?: string;
   error?: Error;
+  usedOCR?: boolean; // 是否使用了 OCR
+}
+
+export interface ProcessOptions {
+  useOCR?: boolean; // 是否强制使用 OCR
+  autoDetectOCR?: boolean; // 是否自动检测是否需要 OCR（默认 true）
+  ocrLanguage?: string; // OCR 语言
 }
 
 /**
@@ -125,13 +133,20 @@ function removeHeaderFooterFromText(
 /**
  * 处理 PDF 文件
  * 1. 检查是否加密
- * 2. 删除图片（通过提取纯文本实现）
+ * 2. 提取文本（支持 OCR）
  * 3. 删除页眉页脚
  */
 export async function processPdf(
   pdfPath: string,
-  outputDir: string
+  outputDir: string,
+  options: ProcessOptions = {}
 ): Promise<ProcessResult> {
+  const {
+    useOCR = false,
+    autoDetectOCR = true,
+    ocrLanguage = "chi_sim+eng",
+  } = options;
+
   try {
     // 1. 检查是否加密
     const isEncrypted = await checkPdfEncryption(pdfPath);
@@ -142,20 +157,47 @@ export async function processPdf(
       };
     }
 
-    // 2. 读取 PDF 并提取文本（自动忽略图片）
-    const dataBuffer = fs.readFileSync(pdfPath);
-    const parser = new PDFParse({ data: dataBuffer, verbosity: 0 });
-    const pdfData = await parser.getText();
+    let processedText = "";
+    let usedOCR = false;
+
+    // 2. 判断是否需要使用 OCR
+    let shouldUseOCR = useOCR;
+    if (!shouldUseOCR && autoDetectOCR) {
+      shouldUseOCR = await OCRProcessor.needsOCR(pdfPath);
+    }
+
+    if (shouldUseOCR) {
+      // 2a. 使用 OCR 提取文本
+      console.log(`🔍 使用 OCR 模式处理 PDF...`);
+      const ocrProcessor = new OCRProcessor({
+        language: ocrLanguage,
+      });
+
+      const ocrResult = await ocrProcessor.processPdf(pdfPath, outputDir);
+
+      if (!ocrResult.success || !ocrResult.text) {
+        throw ocrResult.error || new Error("OCR 处理失败");
+      }
+
+      processedText = ocrResult.text;
+      usedOCR = true;
+    } else {
+      // 2b. 使用标准文本提取
+      console.log(`📄 使用标准模式提取文本...`);
+      const dataBuffer = fs.readFileSync(pdfPath);
+      const parser = new PDFParse({ data: dataBuffer, verbosity: 0 });
+      const pdfData = await parser.getText();
+      processedText = pdfData.text;
+    }
 
     // 3. 检测并移除页眉页脚
     const { headerKeywords, footerKeywords } = detectHeaderFooter(
-      pdfData.text ? [{ items: [{ str: pdfData.text }] }] : []
+      processedText ? [{ items: [{ str: processedText }] }] : []
     );
 
-    let processedText = pdfData.text;
     if (headerKeywords.length > 0 || footerKeywords.length > 0) {
       processedText = removeHeaderFooterFromText(
-        pdfData.text,
+        processedText,
         headerKeywords,
         footerKeywords
       );
@@ -176,6 +218,7 @@ export async function processPdf(
       success: true,
       isEncrypted: false,
       processedPath,
+      usedOCR,
     };
   } catch (error) {
     return {
