@@ -8,6 +8,7 @@
     "start:pdf2md": "tsx ./packages/pdf2md/index.ts",
     "start:pdf2md:ocr": "USE_OCR=true tsx ./packages/pdf2md/index.ts",
     "start:pdf2md:no-ocr": "AUTO_DETECT_OCR=false tsx ./packages/pdf2md/index.ts",
+    "start:md2txt": "tsx ./packages/md2txt/index.ts",
     "start:docs": "http-server ./docs -c-1",
     "test:lm-studio:llm": "sh packages/lm-studio/test/smoke.sh",
     "test:lm-studio:embedding": "sh packages/lm-studio/test/embedding.sh",

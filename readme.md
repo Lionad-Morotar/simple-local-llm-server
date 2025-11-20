@@ -1,21 +1,42 @@
-# Simple Local LLM Server
+# Local LLM Tool Sets
 
-相关技术日新月易，请注意其时效性
+## 📦 Packages
 
----
+### 🌐 Translator
+本地 LLM 翻译代理服务器，More on [《💻 本地部署 Qwen 翻译网页》](https://lionad.art/articles/local-translator)
 
-Local LLM proxy server for LMStudio and 沉浸式翻译。More on [《💻 本地部署 Qwen 翻译网页》](https://lionad.art/articles/local-translator)
-
-## Dev
-
-how to start:
-
-```
-pnpm start
+```bash
+pnpm start:translate
 ```
 
-smoke test on LMStudio:
+### 📄 HTML2MD
+HTML 转 Markdown 批量转换工具
 
+```bash
+pnpm start:html2md
 ```
-pnpm test:smoke:translator:im-translator
+
+### 📑 PDF2MD
+PDF 转 Markdown 批量转换工具（支持 OCR）
+
+```bash
+# 自动检测模式
+pnpm start:pdf2md
+
+# 强制使用 OCR
+pnpm start:pdf2md:ocr
+
+# 禁用 OCR
+pnpm start:pdf2md:no-ocr
 ```
+
+详见: [packages/pdf2md/README.md](packages/pdf2md/README.md)
+
+### 📝 MD2TXT
+Markdown 转纯文本批量转换工具
+
+```bash
+pnpm start:md2txt
+```
+
+详见: [packages/md2txt/README.md](packages/md2txt/README.md)

@@ -3,6 +3,7 @@ node_modules/
 .html
 .md
 .pdf
+.txt
 .processed
 .config
 .vscode/code-counter
