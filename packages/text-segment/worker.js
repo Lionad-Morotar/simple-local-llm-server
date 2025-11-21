@@ -61,6 +61,15 @@ async function processSegment() {
         })),
       };
       fs.writeFileSync(segmentPath, JSON.stringify(data, null, 2), "utf-8");
+      // 额外生成仅包含文本数组的精简文件 *.text.json
+      // 文件名规则：将 .segments.json 替换为 .text.json
+      try {
+        const textArrayPath = segmentPath.replace(/\.segments\.json$/, '.text.json');
+        const textArray = segments.map(s => s.text);
+        fs.writeFileSync(textArrayPath, JSON.stringify(textArray, null, 2), 'utf-8');
+      } catch (e) {
+        // 精简文件生成失败不影响主流程
+      }
     } else {
       // 文本格式
       const lines = [];
