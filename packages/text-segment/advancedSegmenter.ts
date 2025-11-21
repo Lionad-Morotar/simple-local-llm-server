@@ -116,10 +116,6 @@ export class AdvancedSegmenter {
     const lengthBoundaries = this.detectLengthBoundaries(window, offset);
     candidates.push(...lengthBoundaries);
 
-    // 4. 检测语义连贯点
-    const semanticBoundaries = this.detectSemanticBoundaries(window, offset);
-    candidates.push(...semanticBoundaries);
-
     // 选择得分最高的边界
     if (candidates.length === 0) return null;
 
@@ -235,46 +231,6 @@ export class AdvancedSegmenter {
         type: 'length',
         reason: `长度优化点(距首选长度${distance}字)`,
       });
-    }
-
-    return boundaries;
-  }
-
-  /**
-   * 检测语义连贯点
-   */
-  private detectSemanticBoundaries(window: string, offset: number): BoundaryScore[] {
-    const boundaries: BoundaryScore[] = [];
-
-    // 检测段落开始的标志（新段落通常有特定的开头）
-    const paragraphStarters = [
-      /\n[第\d一二三四五六七八九十]+[章节条]/g,  // 章节标题
-      /\n\d+[.、]/g,  // 数字列表
-      /\n[（(]\d+[）)]/g,  // 括号序号
-      /\n[A-Z]/g,  // 大写字母开头
-    ];
-
-    for (const regex of paragraphStarters) {
-      let match;
-      while ((match = regex.exec(window)) !== null) {
-        const position = offset + match.index + 1; // +1 跳过换行符
-        const currentLength = match.index;
-
-        // 语义边界得分
-        let score = this.weights.semanticCoherence * 100;
-
-        // 长度合理性加成
-        if (currentLength >= this.config.minLength) {
-          score += 10;
-        }
-
-        boundaries.push({
-          position,
-          score,
-          type: 'semantic',
-          reason: '语义段落开始',
-        });
-      }
     }
 
     return boundaries;

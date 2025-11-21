@@ -5,14 +5,12 @@
  * - paragraphBoundary: 段落边界（双换行）权重，优先级最高
  * - sentenceBoundary: 句子边界（句号等）权重
  * - lengthOptimization: 长度优化权重，优先级较低
- * - semanticCoherence: 语义连贯性权重
  */
 
 export interface StrategyWeights {
-  paragraphBoundary: number; // 段落边界权重（双换行）
-  sentenceBoundary: number; // 句子边界权重
-  lengthOptimization: number; // 长度优化权重
-  semanticCoherence: number; // 语义连贯权重
+  paragraphBoundary: number;    // 段落边界权重（双换行）
+  sentenceBoundary: number;     // 句子边界权重
+  lengthOptimization: number;   // 长度优化权重
 }
 
 /**
@@ -21,42 +19,30 @@ export interface StrategyWeights {
 export const PRESET_WEIGHTS: Record<string, StrategyWeights> = {
   // 默认配置：优先段落边界
   default: {
-    paragraphBoundary: 0.6,
-    sentenceBoundary: 0.2,
-    lengthOptimization: 0.1,
-    semanticCoherence: 0.1,
+    paragraphBoundary: 0.6,    // 60% 权重
+    sentenceBoundary: 0.25,    // 25% 权重
+    lengthOptimization: 0.15,  // 15% 权重
   },
 
   // 严格段落：强制按段落分段
   strictParagraph: {
-    paragraphBoundary: 0.9,
-    sentenceBoundary: 0.04,
-    lengthOptimization: 0.03,
-    semanticCoherence: 0.03,
+    paragraphBoundary: 0.85,
+    sentenceBoundary: 0.1,
+    lengthOptimization: 0.05,
   },
 
   // 平衡模式：段落和句子并重
   balanced: {
-    paragraphBoundary: 0.4,
-    sentenceBoundary: 0.3,
-    lengthOptimization: 0.2,
-    semanticCoherence: 0.1,
+    paragraphBoundary: 0.5,
+    sentenceBoundary: 0.35,
+    lengthOptimization: 0.15,
   },
 
   // 长度优先：优先考虑长度控制
   lengthFirst: {
-    paragraphBoundary: 0.3,
-    sentenceBoundary: 0.25,
-    lengthOptimization: 0.35,
-    semanticCoherence: 0.1,
-  },
-
-  // 语义优先：优先考虑语义完整性
-  semanticFirst: {
     paragraphBoundary: 0.35,
-    sentenceBoundary: 0.25,
-    lengthOptimization: 0.15,
-    semanticCoherence: 0.25,
+    sentenceBoundary: 0.3,
+    lengthOptimization: 0.35,
   },
 };
 
@@ -78,19 +64,16 @@ export function validateWeights(weights: StrategyWeights): boolean {
 /**
  * 归一化权重（确保总和为 1.0）
  */
-export function normalizeWeights(
-  weights: Partial<StrategyWeights>
-): StrategyWeights {
+export function normalizeWeights(weights: Partial<StrategyWeights>): StrategyWeights {
   const defaults = PRESET_WEIGHTS.default;
   const merged = { ...defaults, ...weights };
   const total = Object.values(merged).reduce((sum, w) => sum + w, 0);
-
+  
   if (total === 0) return defaults;
-
+  
   return {
     paragraphBoundary: merged.paragraphBoundary / total,
     sentenceBoundary: merged.sentenceBoundary / total,
     lengthOptimization: merged.lengthOptimization / total,
-    semanticCoherence: merged.semanticCoherence / total,
   };
 }
