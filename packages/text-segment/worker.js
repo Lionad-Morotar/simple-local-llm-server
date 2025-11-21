@@ -61,14 +61,28 @@ async function processSegment() {
         })),
       };
       fs.writeFileSync(segmentPath, JSON.stringify(data, null, 2), "utf-8");
+      
       // 额外生成仅包含文本数组的精简文件 *.text.json
-      // 文件名规则：将 .segments.json 替换为 .text.json
       try {
         const textArrayPath = segmentPath.replace(/\.segments\.json$/, '.text.json');
         const textArray = segments.map(s => s.text);
         fs.writeFileSync(textArrayPath, JSON.stringify(textArray, null, 2), 'utf-8');
       } catch (e) {
         // 精简文件生成失败不影响主流程
+      }
+      
+      // 额外生成 CSV 格式文件 *.text.csv
+      try {
+        const csvPath = segmentPath.replace(/\.segments\.json$/, '.text.csv');
+        const csvRows = ['index,text,length'];
+        segments.forEach((s, i) => {
+          // CSV 转义：双引号转义为两个双引号，字段用双引号包裹
+          const escapedText = s.text.replace(/"/g, '""');
+          csvRows.push(`${i + 1},"${escapedText}",${s.length}`);
+        });
+        fs.writeFileSync(csvPath, csvRows.join('\n'), 'utf-8');
+      } catch (e) {
+        // CSV 文件生成失败不影响主流程
       }
     } else {
       // 文本格式
