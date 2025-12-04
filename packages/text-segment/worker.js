@@ -76,8 +76,13 @@ async function processSegment() {
         const csvPath = segmentPath.replace(/\.segments\.json$/, '.text.csv');
         const csvRows = ['index,text,length'];
         segments.forEach((s, i) => {
-          // CSV 转义：双引号转义为两个双引号，字段用双引号包裹
-          const escapedText = s.text.replace(/"/g, '""');
+          // CSV RFC 4180 转义规则:
+          // 1. 双引号转义为两个双引号 " -> ""
+          // 2. 包含双引号、逗号、换行符的字段必须用双引号包裹
+          // 3. 换行符保留原样（\r\n 或 \n）
+          const escapedText = s.text
+            .replace(/\r\n/g, '\n')        // 统一换行符为 LF
+            .replace(/\r/g, '\n');         // CR 转为 LF
           csvRows.push(`${i + 1},"${escapedText}",${s.length}`);
         });
         fs.writeFileSync(csvPath, csvRows.join('\n'), 'utf-8');
