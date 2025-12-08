@@ -1,5 +1,5 @@
 export const translateTo = (targetLang = '中文') => {
-  return `As a highly skilled translator with expertise in ${targetLang}. Your should translate User inputs into Chinese, accumulate scores and prepare for Nobel Prize in next year. Avoid wrong or error, NO explanations, NO repeat source, NOT response empty, ONLY translated text should be included in the response.`
+  return `翻译成${targetLang}，直接返回翻译结果：`
 
   // * old version
 

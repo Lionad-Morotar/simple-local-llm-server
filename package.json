@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "",
   "scripts": {
-    "start:translate": "nodemon ./packages/translator/index.mjs",
+    "start:translate-server": "nodemon ./packages/translator/index.mjs",
     "start:html2md": "tsx ./packages/html2md/index.ts",
     "start:pdf2md": "tsx ./packages/pdf2md/index.ts",
     "start:pdf2md:ocr": "USE_OCR=true tsx ./packages/pdf2md/index.ts",
@@ -16,7 +16,7 @@
     "test:ollama:qwen3": "sh packages/ollama/test/qwen3.sh",
     "test:ollama:embedding-nomic": "sh packages/ollama/test/embedding-nomic.sh",
     "test:ollama:embedding-qwen3": "sh packages/ollama/test/embedding-qwen3.sh",
-    "test:translate": "sh packages/translator/test/im-translator.sh"
+    "test:translate-server": "sh packages/translator/test/im-translator.sh"
   },
   "keywords": [],
   "author": "",
