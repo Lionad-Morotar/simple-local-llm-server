@@ -39,7 +39,7 @@ app.use(async (ctx, next)=> {
   ctx.set('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With , yourHeaderFeild');
   ctx.set('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
   if (ctx.method == 'OPTIONS') {
-    ctx.body = 200; 
+    ctx.body = 200;
   } else {
     await next();
   }
@@ -59,22 +59,23 @@ app.use(async (ctx, next) => {
   }
   // console.log('---- body', ctx.request)
 
-  const { source_lang = "en", target_lang = "zh-CN", text_list = [] } = data; 
+  const { source_lang = "en", target_lang = "zh-CN", text_list = [] } = data;
   const targetLangName = target_lang.includes('zh')
     ? '中文'
     : target_lang
 
   console.log('-------------------')
   console.log('[source -> target]', id, source_lang, '->', target_lang)
-  console.log('[input]', id, text_list) 
+  console.log('[input]', id, text_list)
 
-  const task = () => NPromise.mapSeries( 
+  const task = () => NPromise.mapSeries(
     text_list,
     (async (text) => {
-      return await utils.getMeaningfulResponse({
+      return await utils.getResponse({
         server: 'lm-studio',
         system: translateTo(targetLangName),
         user: text.trim(),
+        model: "openai/gpt-oss-20b"
       });
     })
   )

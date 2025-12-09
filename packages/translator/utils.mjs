@@ -18,11 +18,13 @@ async function getResponse(_opts) {
       server: "lm-studio",
       system: "chat with user",
       user: "hello",
+      model: 'deepseek-chat'
     },
     _opts || {}
   );
 
   const data = {
+    model: opts.model,
     messages: [
       {
         role: "system",
@@ -58,45 +60,7 @@ async function getResponse(_opts) {
   return ret?.message?.content
 }
 
-// 容易碰到 Qwen 返回空字符，所以多次尝试
-async function getMeaningfulResponse(_opts) {
-  const getOpts = (inputOpts = {}) => Object.assign(
-    {
-      server: "lm-studio",
-      system: "chat with user",
-      user: "hello",
-    },
-    inputOpts
-  );
-  const opts = [
-    getOpts({
-      ..._opts,
-      user: _opts.user.trim(),
-    }),
-    getOpts({
-      ..._opts,
-      user: '请将以下内容翻译为中文：' + _opts.user.trim(),
-    }),
-    getOpts({
-      ..._opts,
-      user: 'TRANSLATE INTO CHINESE:' + _opts.user.trim(),
-    }),
-  ]
-  const findAsyncSequence = async (xs, fn) => {
-    for (const x of xs) {
-      const ret = await fn(x)
-      if (ret) {
-        return ret
-      }
-    }
-    return ''
-  }
-  return await findAsyncSequence(opts, async (opt) => {
-    return await getResponse(opt)
-  })
-}
-
-async function getMessage(prompt, model = "qwen:7b") {
+async function getMessage(prompt, model = "openai/gpt-oss-20b") {
   const message = [];
   try {
     console.log("Sending message...");
@@ -185,7 +149,6 @@ export default {
   getTime,
   error,
   getResponse,
-  getMeaningfulResponse,
   getMessage,
   parseJsonStream,
   readLines,
