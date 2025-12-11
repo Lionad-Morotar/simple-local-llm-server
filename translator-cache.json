@@ -1,0 +1,5 @@
+{
+  "en|zh-CN|gpt-oss-safeguard-120b-mlx|This repository contains the code for the paper \"Defending Large Language Models Against Jailbreak Attacks via Layer-specific Editing\". The focus of this work is to enhance the resilience of large language models (LLMs) against jailbreak attacks through a novel method termed Layer-specific Editing (LED).": "本仓库提供了论文《通过层特定编辑防御大语言模型的越狱攻击》的代码。工作重点在于利用一种称为层特定编辑（LED）的新方法，提高大语言模型（LLM）对越狱攻击的鲁棒性。",
+  "en|zh-CN|gpt-oss-safeguard-120b-mlx|To get started, clone this repository and install the required dependencies:": "要开始，请克隆此仓库并安装所需依赖。",
+  "en|zh-CN|gpt-oss-safeguard-120b-mlx|The pruning analysis identifies crucial layers in the model that contribute significantly to its defense against harmful prompts. To run the pruning analysis, use the following command:": "剪枝分析能够识别模型中对防御有害提示起关键作用的层。运行剪枝分析，请使用以下命令："
+}

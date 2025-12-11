@@ -1,4 +1,17 @@
 {
+  "watch": [
+    "packages/translator"
+  ],
+  "ignore": [
+    "translator-cache.json",
+    "**/translator-cache.json",
+    "**/.cache/**",
+    "**/*.log",
+    ".nuxt/**",
+    "content/**",
+    "public/**"
+  ],
+  "ext": "js,mjs,json",
   "execMap": {
     "ts": "tsx"
   }

@@ -1,80 +1,124 @@
+
 import dayjs from "dayjs";
 
+// ---- State & Defaults ----
 let context = [];
 let responseTime;
 
-const getTime = (time) => {
-  return dayjs(time || new Date()).format("MM HH:mm:ss");
+const DEFAULTS = {
+  server: "lm-studio",
+  model: "deepseek-chat",
+  system: "chat with user",
+  temperature: 0.2,
+  stream: true,
+  endpoints: {
+    lmStudio: "http://localhost:1234/v1/chat/completions",
+    ollamaGenerate: "http://localhost:11434/api/generate",
+  },
 };
 
-const error = (msg) => {
+// ---- Utils ----
+export const getTime = (time) => dayjs(time || new Date()).format("MM HH:mm:ss");
+export const error = (msg) => {
   console.error(msg);
   return msg;
 };
 
-async function getResponse(_opts) {
-  const opts = Object.assign(
-    {
-      server: "lm-studio",
-      system: "chat with user",
-      user: "hello",
-      model: 'deepseek-chat'
-    },
-    _opts || {}
-  );
+// ---- Streaming helpers ----
+async function parseSSEStream(readable) {
+  const reader = readable.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  let out = "";
+  let reasoning = "";
 
-  const data = {
-    model: opts.model,
-    messages: [
-      {
-        role: "system",
-        content: opts.system,
-      },
-      {
-        role: "user",
-        content: `${opts.user}`,
-        // content: "翻译成中文，仅返回译文：\n" + opts.user,
-      },
-    ],
-    temperature: 0.5,
-    max_tokens: opts.user.length,
-    stream: false,
+  const handleLine = (line) => {
+    // console.log('SSE line:', line);
+    const s = line.trim();
+    if (!s) return;
+    if (s.startsWith("data:") && s.includes("[DONE]")) return;
+    const payload = s.replace(/^data:\s*/, "");
+    try {
+      const json = JSON.parse(payload);
+      const textChunk = json?.choices?.[0]?.delta?.content
+        || json?.choices?.[0]?.message?.content
+        || json?.message?.content
+        || "";
+      // console.log('SSE payload:', textChunk, reasonChunk);
+      if (textChunk) out += textChunk;
+    } catch (e) {
+      // tolerate non-JSON lines present in some SSE implementations
+    }
   };
 
-  const response = await fetch("http://localhost:1234/v1/chat/completions", {
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    method: "POST",
-    body: JSON.stringify(data),
-  }).then(res => {
-    return res.json()
-  })
-
-  const rets = response?.choices || []
-  const ret = rets.find(x => x?.message?.role === 'assistant')
-
-  // console.log('[debug] ret', ret)
-
-  return ret?.message?.content
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() || "";
+    for (const l of lines) handleLine(l);
+  }
+  if (buf.trim()) handleLine(buf);
+  return out;
 }
 
-async function getMessage(prompt, model = "openai/gpt-oss-20b") {
+// ---- LM Studio Chat Completion ----
+export async function getResponse(_opts) {
+  const opts = { ...DEFAULTS, ..._opts };
+  const streamEnabled = opts.stream ?? true;
+  const user = String(opts.user ?? "hello");
+
+  const body = {
+    model: opts.model,
+    messages: [
+      { role: "system", content: opts.system },
+      { role: "user", content: user },
+    ],
+    temperature: opts.temperature,
+    max_tokens: 4096,
+    stream: streamEnabled,
+  };
+
+  const res = await fetch(opts.endpoints.lmStudio, {
+    headers: {
+      Accept: streamEnabled ? "text/event-stream" : "application/json",
+      "Content-Type": "application/json",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+  // console.log('LM Studio response status:', res.status, res.ok, typeof res.body);
+
+  if (!res.ok) {
+    throw new Error(`LM Studio request failed: ${res.status} ${res.statusText}`);
+  }
+
+  if (streamEnabled && res.body) {
+    return parseSSEStream(res.body);
+  }
+
+  const json = await res.json();
+  const rets = json?.choices || [];
+  const ret = rets.find((x) => x?.message?.role === "assistant");
+  const text = ret?.message?.content || "";
+
+  // console.log('LM Studio full response:', json, text, rets);
+  return text;
+}
+
+// ---- Ollama Generate (stream JSON lines) ----
+export async function getMessage(prompt, model) {
   const message = [];
   try {
-    console.log("Sending message...");
-    responseTime = new Date().getTime();
+    responseTime = Date.now();
+    const body = { model, prompt };
+    if (context.length) body.context = context;
 
-    const body = {
-      model,
-      prompt,
-    };
-    if (context.length) {
-      body.context = context;
-    }
-
-    const response = await fetch("http://localhost:11434/api/generate", {
+    const res = await fetch(DEFAULTS.endpoints.ollamaGenerate, {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
@@ -83,39 +127,33 @@ async function getMessage(prompt, model = "openai/gpt-oss-20b") {
       body: JSON.stringify(body),
     });
 
-    console.log("Generating response...");
-    for await (const data of parseJsonStream(response.body)) {
-      if (data.context) {
-        context = data.context;
-        console.log("Adding context...");
-      }
-      message.push(data.response);
+    for await (const data of parseJsonStream(res.body)) {
+      if (data.context) context = data.context;
+      if (data.response) message.push(data.response);
     }
 
-    console.log(message.join(""));
-    console.log(
-      "Executed in ",
-      (new Date().getTime() - responseTime) / 1000,
-      " seconds"
-    );
-
     return message.join("");
-  } catch (error) {
+  } catch (e) {
+    console.error("getMessage failed", e);
     return "error";
+  } finally {
+    if (responseTime) {
+      const secs = (Date.now() - responseTime) / 1000;
+      console.log("Executed in", secs, "seconds");
+    }
   }
 }
 
-async function* parseJsonStream(readableStream) {
+export async function* parseJsonStream(readableStream) {
   for await (const line of readLines(readableStream.getReader())) {
     const trimmedLine = line.trim().replace(/,$/, "");
-
     if (trimmedLine !== "[" && trimmedLine !== "]") {
       yield JSON.parse(trimmedLine);
     }
   }
 }
 
-async function* readLines(reader) {
+export async function* readLines(reader) {
   const textDecoder = new TextDecoder();
   let partOfLine = "";
   for await (const chunk of readChunks(reader)) {
@@ -133,7 +171,7 @@ async function* readLines(reader) {
   }
 }
 
-function readChunks(reader) {
+export function readChunks(reader) {
   return {
     async *[Symbol.asyncIterator]() {
       let readResult = await reader.read();
