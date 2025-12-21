@@ -1,2 +1,5 @@
+packages:
+  - packages/mcp-pdf
+  - packages/split-pdf
 onlyBuiltDependencies:
   - esbuild

@@ -1,0 +1,34 @@
+{
+  "name": "mcp-pdf",
+  "version": "0.1.0",
+  "description": "MCP PDF Toolset",
+  "type": "module",
+  "bin": "./src/index.ts",
+  "files": [
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "mocha \"tests/**/*.test.js\"",
+    "test:coverage": "c8 npm test"
+  },
+  "keywords": [
+    "eslint",
+    "mcp"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.24.1",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.7.2"
+  }
+}
