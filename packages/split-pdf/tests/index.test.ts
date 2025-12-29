@@ -12,6 +12,8 @@ const OUTPUT_DIR = path.resolve(__dirname, '../test-output');
 
 const runScript = async (args: string) => {
   try {
+    // Ensure we are running from the package root context if needed, 
+    // but absolute paths are used so it should be fine.
     const { stdout, stderr } = await execAsync(`bash "${SCRIPT_PATH}" ${args}`);
     return { stdout, stderr, code: 0 };
   } catch (error: any) {
@@ -44,25 +46,31 @@ describe('split-pdf', () => {
   });
 
   it('should dry-run split correctly', async () => {
+    // 50MB split size
     const { stdout, code } = await runScript(`--dry-run "${PDF_PATH}" 50`);
     expect(code).toBe(0);
     expect(stdout).toContain('计划:');
+    // Should output log about expected parts
+    // E.g. "计划: .../part_01.pdf"
   }, 30000);
 
   it('should actually split the pdf', async () => {
     const outDir = path.join(OUTPUT_DIR, 'split-real');
+    // Split into 50MB chunks
     const { stdout, code } = await runScript(`-o "${outDir}" -p chunk "${PDF_PATH}" 50`);
     
     expect(code).toBe(0);
     expect(stdout).toContain('分割完成');
     
+    // Check if files exist
     const files = fs.readdirSync(outDir);
     expect(files.length).toBeGreaterThan(0);
     expect(files.some(f => f.startsWith('chunk_'))).toBe(true);
-  }, 120000);
+  }, 120000); // 2 mins for real processing
 
   it('should support sub-range splitting', async () => {
     const outDir = path.join(OUTPUT_DIR, 'split-range');
+    // Pages 1-10
     const { stdout, code } = await runScript(`-o "${outDir}" --start 1 --end 10 "${PDF_PATH}" 10`);
     expect(code).toBe(0);
     const files = fs.readdirSync(outDir);
@@ -72,13 +80,18 @@ describe('split-pdf', () => {
   it('should handle force overwrite correctly', async () => {
      const outDir = path.join(OUTPUT_DIR, 'split-force');
      
+     // First run
      await runScript(`-o "${outDir}" -p force "${PDF_PATH}" 100`);
      
+     // Second run without force (should skip)
      const res1 = await runScript(`-o "${outDir}" -p force "${PDF_PATH}" 100`);
      expect(res1.stdout).toContain('跳过(已存在)');
 
+     // Third run with force (should overwrite)
      const res2 = await runScript(`-f -o "${outDir}" -p force "${PDF_PATH}" 100`);
      expect(res2.stdout).not.toContain('跳过(已存在)');
+     // Depending on implementation, it might say "生成:" or just do it.
+     // The script says: "✅ 生成: ..."
      expect(res2.stdout).toContain('生成:');
   }, 120000);
 
