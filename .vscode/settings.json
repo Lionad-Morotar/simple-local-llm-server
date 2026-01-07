@@ -11,6 +11,7 @@
     "Hitchens",
     "hormozi",
     "inno",
+    "Kazcynski",
     "markmap",
     "Metadiscourse",
     "Miessler",
@@ -30,5 +31,6 @@
   ],
   "cSpell.ignoreWords": [
     "Rochow"
-  ]
+  ],
+  "search.followSymlinks": true
 }
