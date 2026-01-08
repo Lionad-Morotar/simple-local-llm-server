@@ -49,3 +49,12 @@ pnpm start:text-segment
 ```
 
 详见: [packages/text-segment/README.md](packages/text-segment/README.md)
+
+### 📖 Split-PDF
+按目标大小（MB）自动切分大型 PDF 文件，支持并行处理、断点跳过、子范围页码、Dry-run 预览与可自定义输出前缀/目录
+
+```bash
+pnpm start:split-pdf
+```
+
+详见: [packages/split-pdf/README.md](packages/split-pdf/README.md)
