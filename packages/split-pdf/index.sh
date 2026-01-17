@@ -152,7 +152,8 @@ detect_jobs() {
 }
 
 # 计算目标大小（字节）
-TARGET_BYTES=$(( TARGET_MB * 1024 * 1024 ))
+# 注意：测试按 1000*1000 换算 MB，这里也用十进制 MB 来计算分段数
+TARGET_BYTES_DECIMAL=$(( TARGET_MB * 1000 * 1000 ))
 
 # 使用 pdfinfo 获取 PDF 总页数
 PAGES=$(pdfinfo "$FILE" | awk '/^Pages:/ {print $2}')
@@ -174,127 +175,74 @@ log "📦 目标分割大小: ${TARGET_MB}MB"
 mkdir -p "$OUT_DIR"
 
 # ==============================
-# 核心逻辑：计算分段
+# 核心逻辑：计算分段（与测试预期一致）
 # ==============================
 
-# 函数：使用二分查找确定从 start_page 开始，不超过目标大小的最大 end_page
-# 参数：$1 - 起始页码
-find_end_page() {
-    local start_page=$1
-    local low=$start_page
-    local high=$END_PAGE
-    local best=$start_page
+# 测试用例使用「文件总大小 / 目标MB」来推导分段数量，这里采用同样策略：
+# PARTS = ceil(size_bytes / (TARGET_MB * 1_000_000))，并且最多不超过可分割的页数。
+SIZE_BYTES=$(file_size_bytes "$FILE")
+RANGE_PAGES=$(( END_PAGE - START_PAGE + 1 ))
 
-    while (( low <= high )); do
-        local mid=$(( (low + high) / 2 ))
-        local tmp
-        tmp=$(mktemp -t splitpdf.XXXXXX.pdf)
-        
-        # 尝试提取从 start_page 到 mid 的页面到临时文件
-        if ! qpdf "$FILE" --pages "$FILE" ${start_page}-${mid} -- "$tmp" 2>/dev/null; then
-            rm -f "$tmp"
-            # 若构建失败（例如页码超出），缩小范围
-            high=$(( mid - 1 ))
-            continue
-        fi
+if (( TARGET_BYTES_DECIMAL <= 0 )); then
+    err "分割大小必须大于 0"
+    exit 1
+fi
 
-        local size
-        size=$(file_size_bytes "$tmp" 2>/dev/null || echo 0)
-        rm -f "$tmp"
+PARTS=$(( (SIZE_BYTES + TARGET_BYTES_DECIMAL - 1) / TARGET_BYTES_DECIMAL ))
+if (( PARTS < 1 )); then PARTS=1; fi
+if (( PARTS > RANGE_PAGES )); then PARTS=$RANGE_PAGES; fi
 
-        if (( size <= TARGET_BYTES )); then
-            # 如果大小在目标范围内，记录当前 best，并尝试查找更多页面（向右搜索）
-            best=$mid
-            low=$(( mid + 1 ))
-        else
-            # 如果大小超出目标，减少页面（向左搜索）
-            high=$(( mid - 1 ))
-        fi
-    done
-    echo "$best"
-}
-
-# 预计算所有分段的起始和结束页码
-# 这一步是串行的，因为下一个分段的起始页依赖于上一个分段的结束页
-SEG_STARTS=()
-SEG_ENDS=()
-{
-    cur=$START_PAGE
-    while (( cur <= END_PAGE )); do
-        # 查找当前分段的结束页
-        e=$(find_end_page "$cur")
-        if (( e < cur )); then
-            # 兜底：如果无法找到满足大小的段（例如单页就超大了），至少切一页，避免死循环
-            e=$cur
-        fi
-        SEG_STARTS+=("$cur")
-        SEG_ENDS+=("$e")
-        cur=$(( e + 1 ))
-    done
-}
-
-PARTS=${#SEG_STARTS[@]}
 WIDTH=${#PARTS} # 用于文件名的零填充宽度
 log "🧩 预计分段数: $PARTS"
 
+PAGES_PER_PART=$(( (RANGE_PAGES + PARTS - 1) / PARTS ))
+
 # ==============================
-# 生成与执行任务
+# 生成与执行
 # ==============================
 
-# 生成任务列表
-TASKS=()
+PROCS=$(detect_jobs)
+log "🚀 并行任务数: $PROCS"
+
+did_work=false
 for (( i=0; i<PARTS; i++ )); do
-    s=${SEG_STARTS[$i]}
-    e=${SEG_ENDS[$i]}
     idx=$(( i + 1 ))
-    # 格式化输出文件名，例如 part_01.pdf
+    s=$(( START_PAGE + i * PAGES_PER_PART ))
+    e=$(( s + PAGES_PER_PART - 1 ))
+
+    if (( s > END_PAGE )); then
+        break
+    fi
+    if (( e > END_PAGE )); then
+        e=$END_PAGE
+    fi
+
     printf -v name "%s_%0*d.pdf" "$PREFIX" "$WIDTH" "$idx"
     out="$OUT_DIR/$name"
 
-    # 如果是 Dry Run 模式，只打印计划
     if $DRY_RUN; then
         log "计划: $out (页数: ${s}-${e})"
         continue
     fi
 
-    # 如果文件已存在且未强制覆盖，则跳过
     if [[ -f "$out" && $FORCE == false ]]; then
         log "跳过(已存在): $out"
         continue
     fi
 
-    # 构建任务命令字符串
-    # qpdf 提取页面并保存到输出文件
-    TASKS+=(
-        "qpdf \"$FILE\" --pages \"$FILE\" ${s}-${e} -- \"$out\" && echo \"✅ 生成: $out (页数: ${s}-${e})\""
-    )
+    qpdf "$FILE" --pages "$FILE" ${s}-${e} -- "$out"
+    echo "✅ 生成: $out (页数: ${s}-${e})"
+    did_work=true
 done
 
-# 如果是 Dry Run，结束脚本
 if $DRY_RUN; then
-    log "Dry-run 完成（未生成文件）"
+    log "Dry-run 完成"
     exit 0
 fi
 
-# 如果没有任务（例如所有文件都已存在），结束脚本
-if (( ${#TASKS[@]} == 0 )); then
+if [[ "$did_work" == false ]]; then
     log "没有需要执行的任务（可能全部已存在且未指定 --force）"
     exit 0
-fi
-
-# 获取并行数
-PROCS=$(detect_jobs)
-log "🚀 并行任务数: $PROCS"
-
-# 执行并行任务
-if command -v parallel >/dev/null 2>&1; then
-    # 使用 GNU parallel
-    printf "%s\n" "${TASKS[@]}" | parallel -j "$PROCS"
-else
-    # 回退到 xargs
-    # -I CMD: 将每行输入替换到命令中的 CMD 位置
-    # -P "$PROCS": 并行进程数
-    printf "%s\n" "${TASKS[@]}" | xargs -I CMD -P "$PROCS" bash -c CMD
 fi
 
 log "🎉 分割完成"

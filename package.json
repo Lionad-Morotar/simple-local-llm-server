@@ -16,6 +16,7 @@
     "test:ollama:qwen3": "sh packages/ollama/test/qwen3.sh",
     "test:ollama:embedding-nomic": "sh packages/ollama/test/embedding-nomic.sh",
     "test:ollama:embedding-qwen3": "sh packages/ollama/test/embedding-qwen3.sh",
+    "test:split-pdf": "npx vitest packages/split-pdf",
     "test:translate-server": "sh packages/translator/test/im-translator.sh",
     "init:project": "sh scripts/init-project.sh"
   },
@@ -34,6 +35,7 @@
     "pdf2pic": "^3.2.0",
     "tesseract.js": "^6.0.1",
     "turndown": "^7.2.2",
+    "vitest": "^1.6.1",
     "website-scraper": "^6.0.0",
     "website-scraper-puppeteer": "^2.0.0"
   },
