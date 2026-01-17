@@ -1,3 +1,6 @@
 [submodule "port-key"]
 	path = packages/port-key
 	url = https://github.com/Lionad-Morotar/port-key.git
+[submodule "antv-infograph"]
+	path = syncs/antv-infograph
+	url = git@github.com:antvis/Infographic.git

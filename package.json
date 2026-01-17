@@ -16,7 +16,8 @@
     "test:ollama:qwen3": "sh packages/ollama/test/qwen3.sh",
     "test:ollama:embedding-nomic": "sh packages/ollama/test/embedding-nomic.sh",
     "test:ollama:embedding-qwen3": "sh packages/ollama/test/embedding-qwen3.sh",
-    "test:translate-server": "sh packages/translator/test/im-translator.sh"
+    "test:translate-server": "sh packages/translator/test/im-translator.sh",
+    "init:project": "sh scripts/init-project.sh"
   },
   "keywords": [],
   "author": "",
