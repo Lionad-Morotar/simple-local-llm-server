@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 
 step_git_submodules() {
-  log "Initializing and updating git submodules (if any)..."
+  # 初始化并更新 git submodules（若存在 .gitmodules）。
+  log "[init-project] Initializing and updating git submodules (if any)..."
 
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    log "Not a git repository. Skipping submodule init."
+    log "[init-project] Not a git repository. Skipping submodule init."
     return 0
   fi
 
   if [ ! -f .gitmodules ]; then
-    log "No git submodules found. Skipping submodule init."
+    log "[init-project] No git submodules found. Skipping submodule init."
     return 0
   fi
 

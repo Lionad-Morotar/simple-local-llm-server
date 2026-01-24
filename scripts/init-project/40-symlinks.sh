@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 step_symlinks() {
-  log "Creating symlinks under local-link..."
+  # 创建/更新本地开发用的符号链接（skills 与 claude-skills）。
+  log "[init-project] Creating symlinks under local-link..."
 
   # 1) syncs/antv-infograph/.skills -> local-link/skills/antv-infograph
   local src_skills dest_skills
@@ -11,7 +12,7 @@ step_symlinks() {
   if [ -e "$src_skills" ]; then
     safe_symlink "$src_skills" "$dest_skills"
   else
-    warn "Source not found, skipping: $src_skills"
+    warn "[init-project] Source not found, skipping: $src_skills"
   fi
 
   # 2) ~/.claude/skills -> local-link/claude-skills
@@ -22,6 +23,6 @@ step_symlinks() {
   if [ -e "$claude_src" ]; then
     safe_symlink "$claude_src" "$claude_dest"
   else
-    warn "Source not found, skipping: $claude_src"
+    warn "[init-project] Source not found, skipping: $claude_src"
   fi
 }

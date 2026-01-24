@@ -2,12 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_DIR="$SCRIPT_DIR/../utils"
 
 # 加载模块
 # shellcheck disable=SC1091
-source "$SCRIPT_DIR/lib.sh"
+source "$UTILS_DIR/log.sh"
 # shellcheck disable=SC1091
-source "$SCRIPT_DIR/context.sh"
+source "$UTILS_DIR/fs.sh"
+# shellcheck disable=SC1091
+source "$UTILS_DIR/context.sh"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/10-check-pnpm.sh"
 # shellcheck disable=SC1091
@@ -17,14 +20,14 @@ source "$SCRIPT_DIR/30-git-submodules.sh"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/40-symlinks.sh"
 
-ROOT_DIR="$(get_root_dir)"
+ROOT_DIR="$(get_repo_root_from_script_dir "$SCRIPT_DIR")"
 
-log "Starting project initialization in $ROOT_DIR"
-enter_root_dir
+log "[init-project] Starting project initialization in $ROOT_DIR"
+enter_dir "$ROOT_DIR"
 
 step_check_pnpm
 step_install_deps
 step_git_submodules
 step_symlinks
 
-log "Initialization complete."
+log "[init-project] Initialization complete."

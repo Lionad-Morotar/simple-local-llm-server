@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 step_install_deps() {
-  log "Installing dependencies with pnpm..."
+  # 安装工作区依赖（pnpm）。
+  log "[init-project] Installing dependencies with pnpm..."
   pnpm install
 }
