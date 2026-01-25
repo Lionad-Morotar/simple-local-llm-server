@@ -58,3 +58,10 @@ pnpm start:split-pdf
 ```
 
 详见: [packages/split-pdf/README.md](packages/split-pdf/README.md)
+
+## Structures
+
+* syncs：存放 git 子模块的目录
+* local-link：本地开发使用的符号链接目录
+  * skills：指向 syncs 下子模块 skills
+  * claude-skills：指向全局 claude skills

@@ -4,3 +4,6 @@
 [submodule "antv-infograph"]
 	path = syncs/antv-infograph
 	url = git@github.com:antvis/Infographic.git
+[submodule "brand-design-system-cn"]
+	path = syncs/brand-design-system-cn
+	url = git@github.com:Lionad-Morotar/brand-design-system-cn.git
