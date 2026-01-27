@@ -1,92 +1,148 @@
-# Copilot Instructions
+# AGENTS.md - Agentic Coding Guidelines
 
-本文件为项目的 Copilot 指南（原应命名为 copilot-instructions.md）。默认交流语言为 zh-cn。
+本文件为项目的 Agent 指南，涵盖命令、代码风格与工作流约定。
 
-## 行为与政策
+## 基础命令
 
-- Use 'bd' for task tracking
-- 重大改动应及时修改备忘清单、本指南等文档
+- **安装依赖**: `pnpm install`
+- **工作区根脚本**: `pnpm run <script>` (见 package.json scripts)
+- **运行单个包**: `pnpm --filter <package-name> run <script>`
+- **运行全部包脚本**: `pnpm -r run <script>`
 
-## 项目说明
+## 测试命令
 
-* 一个大 monorepo，用于管理本地的 LLM 工具集与相关脚本
-* 包含多个子包，位于 `packages/` 目录下
-* 使用 `pnpm` 作为包管理器与工作区工具
-* 主要编程语言为 TypeScript/JavaScript，部分 Shell 脚本
-
-## 响应格式（用于对话与变更说明）
-
-- 标题：仅在有助于理解时使用，长度 1-3 词，形如“**Title Case**”。
-- 列表：使用短而聚合的要点；格式为“- 粗体关键词: 简明描述”。
-- 命令与标识：使用反引号包裹命令、环境变量与代码标识，如 `pnpm`、`NODE_ENV`、`myFunction()`。
-- 文件链接：引用工作区文件或具体行号时，使用 Markdown 链接（工作区相对路径；禁止使用 file:// 或 vscode://）。示例：
-	- 文件： [packages/pdf2md/README.md](packages/pdf2md/README.md)
-	- 行号： [src/index.ts](packages/html2md/index.ts#L10)
-	- 区间： [text-processor.ts](packages/text-segment/textProcessor.ts#L25-L34)
-- 数学表达：行内用 $a=b+c$，块级使用 $$E=mc^2$$（KaTeX）。
-- 简洁为先：默认不超过 8-10 行；复杂任务可适度扩展并分组说明。
-
-## 代码与改动原则
-
-- 根因修复：尽可能定位与修复问题的根因，避免表面补丁。
-- 最小改动：保持改动聚焦，避免重构无关代码或变更公共 API。
-- 一致风格：遵循现有代码风格（空格/缩进/命名）；保留已有约定。
-- 文档更新：若改动影响用法或行为，同步更新相关 README/USAGE。
-- 版权与头部：不要新增版权或 license 头部，除非明确要求。
-- 注释与命名：不添加内联冗余注释；避免单字母变量名（除非另行要求）。
-
-## 项目与工作流约定
-
-- 包管理与工作区：使用 pnpm 工作区；各工具位于 `packages/` 下（如 pdf2md、md2txt、text-segment、translator、split-pdf 等）。
-- 语言与脚本：TypeScript/JavaScript 与 Shell 并存；开发脚本位于 `scripts/` 与各包 `test/`。
-- 运行与示例（按包脚本实际定义为准）：
+| 包 | 命令 | 说明 |
+|---|---|---|
+| split-pdf | `pnpm --filter split-pdf test` | 运行 vitest |
+| split-pdf 单文件 | `npx vitest packages/split-pdf/tests/index.test.ts` | 运行指定测试 |
+| port-key | `npx vitest packages/port-key` | 运行 port-key vitest |
+| port-key 单文件 | `npx vitest packages/port-key/packages/mcp/tests/mcp-server.test.ts` | 运行指定测试 |
 
 ```bash
-# 安装依赖（工作区）
-pnpm install
-
-# 运行全部包的指定脚本（若定义）
-pnpm -r run dev
-
-# 只运行某个包（示例：pdf2md，如已定义脚本）
-pnpm --filter pdf2md run dev
-
-# 运行测试（示例：split-pdf）
-pnpm --filter split-pdf test
+# vitest 常用选项
+npx vitest run              # 单次运行，不监听
+npx vitest --reporter=dot   # 简洁输出
+npx vitest --testTimeout=30000  # 超时设置(ms)
 ```
 
-- 终端与平台：当前操作系统为 macOS；优先使用跨平台命令，必要时注明平台差异。
-- 大改前置说明：进行批量或高影响更改前，先简述目的与预期结果。
+## 开发启动
 
-## 测试与验证
+```bash
+# 翻译服务器
+pnpm start:translate-server
 
-- 就近验证：优先运行与改动最相关的包或模块测试（如 `packages/split-pdf/tests/`）。
-- 范围控制：避免修复与本次改动无关的失败或遗留问题。
-- 格式化：在确认正确后再进行定向格式化（单文件或子包），避免全库重排。
-- 结果自检：说明变更影响面、潜在边界条件与回滚策略（如需）。
+# 各工具入口
+pnpm start:html2md
+pnpm start:pdf2md
+pnpm start:pdf2md:ocr      # 启用 OCR
+pnpm start:md2txt
+pnpm start:text-segment
+```
 
-## 交流与进度更新
+## 代码风格
 
-- 预告语：在执行一组相关操作或工具调用前，用 1-2 句说明要做什么、为何做以及预期结果。
-- 进度节奏：每完成 3-5 个操作或创建/修改 >3 个文件后，简短更新一次进度（8-10 个字内）。
-- 合理分组：把相关动作合并说明，避免琐碎的逐条汇报。
+### 格式与命名
 
-## 文件引用规则（对话中）
+- **文件命名**: kebab-case (如 `split-pdf`, `mcp-server.ts`)
+- **类命名**: PascalCase (如 `MCPServerApp`)
+- **函数/变量**: camelCase (如 `batchConvert`, `getCPUUsage`)
+- **常量**: UPPER_SNAKE_CASE 或 camelCase (如 `TARGET_CPU_USAGE`)
+- **字符串**: 双引号 (如 `"Starting PortKey MCP Server"`)
 
-- 路径统一：使用绝对路径并以 `/` 分隔；禁止包含盘符与外部前缀。
-- 行号格式：
-	- 单行： [path/file.ts](path/file.ts#L10)
-	- 区间： [path/file.ts](path/file.ts#L10-L12)
-- 禁止：不使用逗号分隔的多区间链接；不在链接外另写行号。
+### Import 规范
 
-## 项目常见任务建议
+```typescript
+// Node.js 内置模块
+import fs from "fs";
+import { randomUUID } from "node:crypto";
 
-- 新增工具/包：在 `packages/` 下创建目录与 `package.json`，声明脚本与类型配置；在工作区根 `pnpm-workspace.yaml` 中确保包含路径。
-- 处理 PDF/MD/文本：遵循各包 README 与 USAGE；优先使用已有 worker 与 pipeline；如需并发，注意资源竞争与锁（参考 `pdf2md/lockManager.ts`）。
-- 细分文本：复用 `text-segment` 的策略加载与权重模块；新增策略建议先以最小可用原型验证。
+// 第三方模块
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-## 提示与边界
+// 相对路径 (省略 .ts/.js 扩展名)
+import logger from "./utils/logger.js";
+import { tools } from "./tools/index.js";
+```
 
-- 不确定性：对于未验证的构建/运行结论，使用“据现有上下文推断/示例”表述，并提供可复制的最少命令。
-- 外部依赖：尽量使用已有依赖；若需新增，优先小而稳的库，并在对应包 `package.json` 中声明。
-- 性能与资源：长任务或高负载操作前给出风险与替代方案（如分批、缓存、限流）。
+### 类型与接口
+
+```typescript
+// 接口命名 PascalCase
+interface CustomLogger extends winston.Logger {
+  getLevel(): string;
+  setLevel(level: string): void;
+}
+
+// 类型别名
+type ChunkResult = { success: boolean; filename: string; error?: Error };
+
+// 显式类型标注 (尤其在函数参数和返回值)
+function processInWorker(htmlPath: string, mdPath: string): Promise<ChunkResult>
+```
+
+### 错误处理
+
+```typescript
+// 优先使用 try/catch，保留原始错误信息
+try {
+  const result = await processInWorker(htmlPath, mdPath);
+} catch (error) {
+  logger.error("转换失败:", error);
+  addErrorFile(filename, error);
+}
+
+// 错误类型判断
+const code = err && typeof err === "object" && "code" in err ? (err as any).code : undefined;
+if (code === "EADDRINUSE") { ... }
+```
+
+### 日志规范
+
+- 使用 `logger` 模块 (winston)，避免 `console.log`
+- 日志级别: `info`, `error`, `warn`, `debug`
+- 开发环境输出彩色格式，生产环境 JSON 格式
+
+```typescript
+logger.info(`Starting PortKey MCP Server on port ${port}`);
+logger.error("Failed to start HTTP server", err);
+```
+
+### 注释规则
+
+- **不添加冗余注释**: 代码自解释时省略注释
+- **复杂逻辑**可添加中文注释说明意图
+- **公开 API** 可用 JSDoc 描述
+
+```typescript
+/**
+ * 动态调整 Worker 数量
+ */
+async function adjustWorkerCount(activeWorkers: number): Promise<number>
+```
+
+### 其他约定
+
+- **异步函数**: 返回 `Promise<T>`，使用 `async/await`
+- **模块系统**: 使用 ESM (`import`/`export default`)
+- **路径分隔符**: 使用 `/` (POSIX 风格)，Node.js 会自动处理
+- **魔法数字**: 提取为常量 (如 `TARGET_CPU_USAGE = 0.8`)
+
+## 项目结构
+
+```
+packages/
+  ├── split-pdf/      # Shell + TypeScript 测试
+  ├── mcp-pdf/        # MCP PDF 工具
+  ├── port-key/       # MCP 端口管理 (vitest + TypeScript)
+  ├── pdf2md/         # PDF 转 Markdown
+  ├── html2md/        # HTML 转 Markdown
+  ├── md2txt/         # Markdown 提取文本
+  ├── text-segment/   # 文本分词
+  └── translator/     # 翻译服务
+```
+
+## 响应与变更规范
+
+- **进度更新**: 每 3-5 个操作后简报 (8-10 字)
+- **文件引用**: 使用 Markdown 链接 `[path/file.ts](path/file.ts#L10)`
+- **改动原则**: 根因修复、最小改动、风格一致
