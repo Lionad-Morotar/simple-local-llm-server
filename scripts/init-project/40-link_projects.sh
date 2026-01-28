@@ -28,7 +28,7 @@ step_link_projects() {
 
   # -------------------- syncs/project-translator -> skills -------------------- #
   local src_skills dest_skills
-  src_skills="${ROOT_DIR}/syncs/project-translator/skills/project-translator"
+  src_skills="${ROOT_DIR}/syncs/project-translator"
   dest_skills="${ROOT_DIR}/local-link/skills/project-translator"
 
   if [ -e "$src_skills" ]; then
