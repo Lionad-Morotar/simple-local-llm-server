@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-step_symlinks() {
+step_link_projects() {
   # 创建/更新本地开发用的符号链接（skills 与 claude-skills）。
   log "[init-project] Creating symlinks under local-link..."
 
@@ -26,14 +26,15 @@ step_symlinks() {
     warn "[init-project] Source not found, skipping: $src_skills"
   fi
 
-  # --------------- ~/.claude/skills -> local-link/claude-skills --------------- #
-  local claude_src claude_dest
-  claude_src="${HOME}/.claude/skills"
-  claude_dest="${ROOT_DIR}/local-link/claude-skills"
+  # -------------------- syncs/project-translator -> skills -------------------- #
+  local src_skills dest_skills
+  src_skills="${ROOT_DIR}/syncs/project-translator/skills/project-translator"
+  dest_skills="${ROOT_DIR}/local-link/skills/project-translator"
 
-  if [ -e "$claude_src" ]; then
-    safe_symlink "$claude_src" "$claude_dest"
+  if [ -e "$src_skills" ]; then
+    safe_symlink "$src_skills" "$dest_skills"
   else
-    warn "[init-project] Source not found, skipping: $claude_src"
+    warn "[init-project] Source not found, skipping: $src_skills"
   fi
+
 }

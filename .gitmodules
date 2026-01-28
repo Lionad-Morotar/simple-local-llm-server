@@ -7,3 +7,9 @@
 [submodule "brand-design-system-cn"]
 	path = syncs/brand-design-system-cn
 	url = git@github.com:Lionad-Morotar/brand-design-system-cn.git
+[submodule "git-shit-done-cn"]
+	path = syncs/git-shit-done-cn
+	url = https://github.com/Lionad-Morotar/get-shit-done-cn.git
+[submodule "project-translator"]
+	path = syncs/project-translator
+	url = git@github.com:Lionad-Morotar/project-translator.git

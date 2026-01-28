@@ -18,7 +18,9 @@ source "$SCRIPT_DIR/20-install-deps.sh"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/30-git-submodules.sh"
 # shellcheck disable=SC1091
-source "$SCRIPT_DIR/40-symlinks.sh"
+source "$SCRIPT_DIR/40-link_projects.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/50-symlinks.sh"
 
 ROOT_DIR="$(get_repo_root_from_script_dir "$SCRIPT_DIR")"
 
@@ -28,6 +30,7 @@ enter_dir "$ROOT_DIR"
 step_check_pnpm
 step_install_deps
 step_git_submodules
+step_link_projects
 step_symlinks
 
 log "[init-project] Initialization complete."
