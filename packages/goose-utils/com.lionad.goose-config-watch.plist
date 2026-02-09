@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.lionad.goose-config-watch</string>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/bin/zsh</string>
+      <string>-lc</string>
+      <string>node /Users/lionad/Github/Local/packages/goose-utils/goose-mcp-json.mjs --input /Users/lionad/.config/goose/config.yaml</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>WatchPaths</key>
+    <array>
+      <string>/Users/lionad/.config/goose</string>
+      <string>/Users/lionad/.config/goose/config.yaml</string>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/Users/lionad/Library/Logs/goose-config-watch.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/lionad/Library/Logs/goose-config-watch.err.log</string>
+  </dict>
+</plist>
