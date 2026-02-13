@@ -1,6 +1,6 @@
 ---
 title: workspace-context
-description: 携带上下文继续工作；了解用户黑话、工作目录、系统路径等上下文信息。
+description: 携带上下文继续工作；了解用户黑话、工作目录、系统路径等上下文信息；Vault 路径；
 ---
 
 ## 上下文
