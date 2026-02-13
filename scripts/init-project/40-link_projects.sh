@@ -25,16 +25,4 @@ step_link_projects() {
   else
     warn "[init-project] Source not found, skipping: $src_skills"
   fi
-
-  # -------------------- syncs/project-translator -> skills -------------------- #
-  local src_skills dest_skills
-  src_skills="${ROOT_DIR}/syncs/project-translator"
-  dest_skills="${ROOT_DIR}/local-link/skills/project-translator"
-
-  if [ -e "$src_skills" ]; then
-    safe_symlink "$src_skills" "$dest_skills"
-  else
-    warn "[init-project] Source not found, skipping: $src_skills"
-  fi
-
 }
