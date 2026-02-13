@@ -13,3 +13,6 @@
 [submodule "project-translator"]
 	path = syncs/project-translator
 	url = git@github.com:Lionad-Morotar/project-translator.git
+[submodule "deep-fact-checker"]
+	path = local-link/skills/deep-fact-checker
+	url = git@github.com:Lionad-Morotar/deep-fact-check-skill.git
