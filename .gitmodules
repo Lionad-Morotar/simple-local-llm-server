@@ -22,3 +22,6 @@
 [submodule "ai-research-skills"]
 	path = local-link/skills/ai-research-skills
 	url = git@github.com:Lionad-Morotar/AI-Research-SKILLs-cn.git
+[submodule "local-link/skills/mcp-builder"]
+	path = local-link/skills/mcp-builder
+	url = https://github.com/Lionad-Morotar/mcp-builder.git
