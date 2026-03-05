@@ -89,7 +89,25 @@ python scripts/main.py "https://www.pixiv.net/artworks/141349217" --star 3
 ### 2. 多图作品
 - 创建子文件夹：`Pixiv > {作者} - {标题}`
 - 图片命名：`p1.jpg`, `p2.jpg`...
+- 自动设置封面：`p1` 自动设为文件夹封面（通过 `coverId` 字段）
 - 注释：作者信息
+
+**文件夹封面数据结构：**
+```json
+{
+  "id": "A7wr2MJeCl0tA",
+  "name": "たぬま - 絵",
+  "description": "作者: たぬま",
+  "coverId": "KwSneSgHhvnQI",
+  "children": [],
+  "modificationTime": 1772033456059,
+  "tags": [],
+  "password": "",
+  "passwordTips": ""
+}
+```
+
+- `coverId`: 指向文件夹内某个资源的 ID，Eagle 用此资源作为文件夹缩略图显示
 
 ### 3. 认证方式
 Pixiv 需要 cookies 文件：
@@ -177,15 +195,20 @@ Pixiv 需要 cookies 文件：
 ```
 
 - `star`: 评分（1-5星，0表示无评分）
+- `coverId`: 文件夹封面资源 ID（多图作品自动设置 p1 为封面）
 
 ## 脚本位置
 
 ```
 ~/.claude/skills/save-to-eagle/scripts/
 ├── main.py              # 入口，URL 路由
-├── pixiv.py             # Pixiv 归档逻辑
+├── pixiv.py             # Pixiv 归档逻辑（支持多图封面设置）
 ├── behance.py           # Behance 归档逻辑
 ├── eagle_utils.py       # 共用工具函数
+│   ├── create_eagle_asset()    # 创建资源
+│   ├── create_subfolder()      # 创建子文件夹
+│   ├── set_folder_cover()      # 设置文件夹封面
+│   └── rebuild_mtime_index()   # 重建索引
 └── record_webpage.py    # 网页屏幕录制
 ```
 

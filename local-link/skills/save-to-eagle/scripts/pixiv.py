@@ -12,6 +12,7 @@ from eagle_utils import (
     FOLDER_IDS,
     create_eagle_asset,
     create_subfolder,
+    set_folder_cover,
     rebuild_mtime_index,
     sanitize_filename,
     download_image
@@ -186,6 +187,7 @@ def archive_pixiv(url: str, star: int = 0, single: bool = False):
         # 获取所有页面 URL
         page_urls = fetch_artwork_pages(artwork_id)
 
+        first_asset_id = None
         for i, image_url in enumerate(page_urls, 1):
             ext = image_url.split(".")[-1].split("?")[0]
             temp_path = temp_dir / f"p{i}.{ext}"
@@ -202,6 +204,10 @@ def archive_pixiv(url: str, star: int = 0, single: bool = False):
                 star=star
             )
 
+            # 记录第一张图的 asset_id 用于设置封面
+            if i == 1:
+                first_asset_id = metadata["id"]
+
             downloaded.append({
                 "name": f"p{i}",
                 "width": metadata["width"],
@@ -210,6 +216,10 @@ def archive_pixiv(url: str, star: int = 0, single: bool = False):
             })
 
             print(f"   ✅ p{i}: {metadata['width']}×{metadata['height']}")
+
+        # 设置第一张图为文件夹封面
+        if first_asset_id:
+            set_folder_cover(subfolder_id, first_asset_id)
 
     # 重建索引
     rebuild_mtime_index()

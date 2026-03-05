@@ -126,11 +126,13 @@ def archive_behance(url: str, star: int, project_data: dict):
         try:
             # 获取原图 URL
             src = img_info.get("src", "")
-            # 替换为原图尺寸
-            src = src.replace("/max_632_webp/", "/original/")
-            src = src.replace("/1400_webp/", "/original/")
-            src = src.replace("/max_632/", "/original/")
-            src = src.replace("/1400/", "/original/")
+            # 替换为最大可用尺寸 (1400px 是 Behance 支持的最大尺寸)
+            # 注意：/original/ 路径不存在，使用 /1400/ 作为最大尺寸
+            src = src.replace("/max_632_webp/", "/1400_webp/")
+            src = src.replace("/max_632/", "/1400/")
+            # 如果已经是 /1400/ 或 /1400_webp/，保持不变
+            # 移除 _webp 后缀获取 JPG 版本（兼容性更好）
+            src = src.replace("/1400_webp/", "/1400/")
 
             alt = img_info.get("alt", "")
 

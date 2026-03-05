@@ -166,14 +166,42 @@ def create_subfolder(parent_id: str, name: str, description: str = "") -> str:
     """
     在指定父文件夹下创建子文件夹
 
+    如果同名文件夹已存在，则返回现有文件夹的 ID
+
     Returns:
-        新文件夹的 ID
+        文件夹的 ID
     """
     metadata_path = LIBRARY_ROOT / "metadata.json"
 
     with open(metadata_path, 'r', encoding='utf-8') as f:
         metadata = json.load(f)
 
+    # 递归查找父文件夹，并检查是否已存在同名子文件夹
+    def find_parent_and_check_duplicate(folder_list):
+        for folder in folder_list:
+            if folder["id"] == parent_id:
+                # 检查是否已存在同名子文件夹
+                for child in folder.get("children", []):
+                    if child.get("name") == name:
+                        return folder, child["id"]  # 返回父文件夹和现有子文件夹 ID
+                return folder, None  # 返回父文件夹，无重复
+            if folder.get("children"):
+                result = find_parent_and_check_duplicate(folder["children"])
+                if result[0] is not None:
+                    return result
+        return None, None
+
+    parent_folder, existing_id = find_parent_and_check_duplicate(metadata.get("folders", []))
+
+    if parent_folder is None:
+        raise ValueError(f"父文件夹 {parent_id} 未找到")
+
+    # 如果已存在同名文件夹，返回现有 ID
+    if existing_id:
+        print(f"   使用现有文件夹: {name}")
+        return existing_id
+
+    # 创建新文件夹
     folder_id = generate_folder_id()
     now_ms = int(datetime.now().timestamp() * 1000)
 
@@ -188,19 +216,7 @@ def create_subfolder(parent_id: str, name: str, description: str = "") -> str:
         "passwordTips": ""
     }
 
-    # 递归查找父文件夹
-    def find_and_add(folder_list):
-        for folder in folder_list:
-            if folder["id"] == parent_id:
-                folder.setdefault("children", []).append(new_folder)
-                return True
-            if folder.get("children"):
-                if find_and_add(folder["children"]):
-                    return True
-        return False
-
-    if not find_and_add(metadata.get("folders", [])):
-        raise ValueError(f"父文件夹 {parent_id} 未找到")
+    parent_folder.setdefault("children", []).append(new_folder)
 
     # 原子写入
     temp_path = metadata_path.with_suffix('.tmp')
@@ -209,6 +225,42 @@ def create_subfolder(parent_id: str, name: str, description: str = "") -> str:
     temp_path.replace(metadata_path)
 
     return folder_id
+
+
+def set_folder_cover(folder_id: str, asset_id: str):
+    """
+    设置文件夹封面
+
+    Args:
+        folder_id: 目标文件夹 ID
+        asset_id: 作为封面的资源 ID
+    """
+    metadata_path = LIBRARY_ROOT / "metadata.json"
+
+    with open(metadata_path, 'r', encoding='utf-8') as f:
+        metadata = json.load(f)
+
+    # 递归查找文件夹
+    def find_and_update(folder_list):
+        for folder in folder_list:
+            if folder["id"] == folder_id:
+                folder["coverId"] = asset_id
+                return True
+            if folder.get("children"):
+                if find_and_update(folder["children"]):
+                    return True
+        return False
+
+    if not find_and_update(metadata.get("folders", [])):
+        raise ValueError(f"文件夹 {folder_id} 未找到")
+
+    # 原子写入
+    temp_path = metadata_path.with_suffix('.tmp')
+    with open(temp_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=2)
+    temp_path.replace(metadata_path)
+
+    print(f"   设置封面: {asset_id}")
 
 
 def rebuild_mtime_index():
