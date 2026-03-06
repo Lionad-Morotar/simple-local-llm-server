@@ -28,3 +28,6 @@
 [submodule "local-link/skills/gh-cli-skill"]
 	path = local-link/skills/gh-cli-skill
 	url = https://github.com/Lionad-Morotar/gh-cli-skill.git
+[submodule "local-link/skills-backup/ai-research-skills"]
+	path = local-link/skills-backup/ai-research-skills
+	url = git@github.com:Lionad-Morotar/AI-Research-SKILLs-cn.git

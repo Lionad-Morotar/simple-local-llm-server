@@ -88,19 +88,37 @@ git push -u origin main
 
 ### Step 7: Update README.md
 
-Add a section at the top of README.md documenting the fork relationship:
+Add a section at the top of README.md (after the badges, before the main content) documenting the fork relationship:
 
 ```markdown
-## About This Fork
+> **About This Repo**
+>
+> This is a fork of [<upstream-owner>/<upstream-repo>](<upstream-repo-url>).（这句话格式要严格一致）
+>
+> This fork maintains the core functionality while publishing under the `<package-scope>` npm scope for personal use.（这句话可以适当改描述）
+```
 
-This is a fork of [<original-repo-name>](<original-repo-url>) by [<original-author>](<original-author-url>).
+**Dynamic values to extract:**
 
-**Original Repository:** <original-repo-url>
-**Upstream:** `git remote add upstream <original-repo-url>.git`
+| Placeholder | Source | Command/Field |
+|-------------|--------|---------------|
+| `<upstream-owner>` | `git remote get-url upstream` | Extract owner from `https://github.com/<owner>/<repo>.git` |
+| `<upstream-repo>` | `git remote get-url upstream` | Extract repo name from upstream URL |
+| `<upstream-repo-url>` | `git remote get-url upstream` | Use the full HTTPS URL (without `.git` suffix) |
+| `<package-scope>` | `package.json` | Read `name` field (e.g., `@lionad/openapi-to-skills` → `@lionad`) |
 
-### Changes from Original
+**Example extraction commands:**
 
-- [List any modifications made]
+```bash
+# Get upstream owner and repo
+upstream_url=$(git remote get-url upstream)
+# Parse: https://github.com/neutree-ai/openapi-to-skills.git
+# Owner: neutree-ai, Repo: openapi-to-skills
+
+# Get package scope from package.json
+package_name=$(cat package.json | grep '"name"' | head -1 | sed 's/.*: "\([^"]*\)".*/\1/')
+# Extract scope: @lionad/openapi-to-skills → @lionad
+scope=$(echo "$package_name" | cut -d'/' -f1)
 ```
 
 Commit this change:
