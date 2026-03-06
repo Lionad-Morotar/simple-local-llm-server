@@ -10,3 +10,4 @@ node_modules/
 .vscode/code-counter
 .output
 __pycache__
+tmp
