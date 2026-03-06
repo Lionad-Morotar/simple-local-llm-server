@@ -25,3 +25,6 @@
 [submodule "local-link/skills/mcp-builder"]
 	path = local-link/skills/mcp-builder
 	url = https://github.com/Lionad-Morotar/mcp-builder.git
+[submodule "local-link/skills/anti-render-skill"]
+	path = local-link/skills/anti-render-skill
+	url = git@github.com:Lionad-Morotar/anti-render-skill.git
