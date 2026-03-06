@@ -70,13 +70,43 @@ git push
 
 ```
 <project-name>/
-├── README.md              # 项目说明（仿照 /Users/lionad/G/Local/local-link/skills/mcp-builder/README.md）
+├── README.md              # 项目说明（基础模版见下方）
 ├── skills/
 │   └── <skill-name>/      # Skill 目录
 │       ├── SKILL.md       # Skill 定义
 │       ├── reference/     # 参考文档（可选）
 │       ├── scripts/       # 脚本（可选）
 │       └── assets/        # 资源文件（可选）
+```
+
+### README.md 基础模版
+
+仿照 [`gh-cli-skill/README.md`](https://github.com/Lionad-Morotar/gh-cli-skill/blob/main/README.md) 的简洁结构：
+
+```markdown
+# <project-name>
+
+<一句话描述 skill 的用途>
+
+## 安装
+
+```bash
+npx skills add Lionad-Morotar/<project-name>
+```
+
+## 使用
+
+```sh
+/<skill-name> {你的要求}
+```
+
+如果你的 IDE 不支持 SlashCommand，那么为了获得最可靠的结果，需要提示词前加上前缀，比如：
+
+```plaintext
+使用 <skill-name> 技能，{你的要求}
+```
+
+这会明确触发技能并确保 AI 遵循文档化的模式。如果不加前缀，技能触发可能不一致，具体取决于你的提示词与技能描述关键词的匹配程度。
 ```
 
 ## 检查清单

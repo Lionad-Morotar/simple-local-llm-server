@@ -31,3 +31,6 @@
 [submodule "local-link/skills/remind-me-skill"]
 	path = local-link/skills/remind-me-skill
 	url = https://github.com/Lionad-Morotar/remind-me-skill.git
+[submodule "local-link/skills/gh-cli-skill"]
+	path = local-link/skills/gh-cli-skill
+	url = https://github.com/Lionad-Morotar/gh-cli-skill.git
