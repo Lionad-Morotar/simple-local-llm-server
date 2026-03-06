@@ -28,3 +28,6 @@
 [submodule "local-link/skills/anti-render-skill"]
 	path = local-link/skills/anti-render-skill
 	url = git@github.com:Lionad-Morotar/anti-render-skill.git
+[submodule "local-link/skills/remind-me-skill"]
+	path = local-link/skills/remind-me-skill
+	url = https://github.com/Lionad-Morotar/remind-me-skill.git
