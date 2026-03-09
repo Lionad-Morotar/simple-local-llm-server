@@ -13,15 +13,17 @@ Edge 必须以远程调试模式运行在 9222 端口。
 
 **启动 Edge 并启用远程调试：**
 
+> **注意**：从 Chrome/Edge 136 开始，`--remote-debugging-port` 必须与 `--user-data-dir` 配合使用，指向非标准用户数据目录。
+
 ```bash
 # macOS
-/Applications/Microsoft\ Edge.app/Contents/MacOS/Microsoft\ Edge --remote-debugging-port=9222
+/Applications/Microsoft\ Edge.app/Contents/MacOS/Microsoft\ Edge --remote-debugging-port=9222 --user-data-dir="~/edge-debug-profile"
 
 # Windows
-"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --remote-debugging-port=9222
+"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --remote-debugging-port=9222 --user-data-dir="C:\edge-debug-profile"
 
 # Linux
-microsoft-edge --remote-debugging-port=9222
+microsoft-edge --remote-debugging-port=9222 --user-data-dir="~/edge-debug-profile"
 ```
 
 ## 连接方式（关键）
