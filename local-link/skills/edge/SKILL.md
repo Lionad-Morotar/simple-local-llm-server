@@ -13,17 +13,19 @@ Edge 必须以远程调试模式运行在 9222 端口。
 
 **启动 Edge 并启用远程调试：**
 
-> **注意**：从 Chrome/Edge 136 开始，`--remote-debugging-port` 必须与 `--user-data-dir` 配合使用，指向非标准用户数据目录。
+> **注意**：
+> 从 Chrome/Edge 136 开始，`--remote-debugging-port` 必须与 `--user-data-dir` 配合使用，指向非标准用户数据目录。
+> 如果没有 ~/.config/edge 目录，应当询问用户“默认用户配置目录地址”，并使用 edge 浏览器打开 “edge://profile-internals/”，告知用户从页面中获取默认的 User Profile Directory
+> 当用户继续输入内容时，检测是否是一个合法的目录，比如 “~/Library/Application Support/Microsoft Edge/Default”，如果是则 `ln -s <xxx> ~/.config/edge`
 
 ```bash
+# link CDP to default User Profile
+mkdir -p ~/.config/edge && ln -s "/Users/lionad/Library/Application Support/Microsoft Edge" "$HOME/.config/edge"
 # macOS
-/Applications/Microsoft\ Edge.app/Contents/MacOS/Microsoft\ Edge --remote-debugging-port=9222 --user-data-dir="~/edge-debug-profile"
-
-# Windows
-"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --remote-debugging-port=9222 --user-data-dir="C:\edge-debug-profile"
-
-# Linux
-microsoft-edge --remote-debugging-port=9222 --user-data-dir="~/edge-debug-profile"
+/Applications/Microsoft\ Edge.app/Contents/MacOS/Microsoft\ Edge \
+    --remote-allow-origins=http://localhost:9222 \
+    --remote-debugging-port=9222 \
+    --user-data-dir="$HOME/.config/edge"
 ```
 
 ## 连接方式（关键）
@@ -39,7 +41,7 @@ browser = playwright.chromium.connect_over_cdp("http://localhost:9222")
 # 错误 - 会打开新的 Chrome 浏览器
 browser = playwright.chromium.launch()
 ```
-Ultrathink. Engage maximum reasoning depth for complex architectural decisions, system design, and intractable problems.
+
 ## 快速开始
 
 ```python
@@ -79,6 +81,11 @@ curl -s http://localhost:9222/json/version
 - **macOS**: `/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge`
 - **Windows**: `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`
 - **Linux**: `/usr/bin/microsoft-edge` 或 `/opt/microsoft/msedge/msedge`
+
+## 常用脚本
+
+- [获取打开的标签页](scripts/get-opened-pages.sh) - 通过 CDP API 列出所有打开的页面
+- [获取页面结构](scripts/get_tree.py) - 解析页面无障碍树为精简的语义结构
 
 ## 参考资料
 
