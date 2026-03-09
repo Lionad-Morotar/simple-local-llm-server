@@ -131,3 +131,67 @@ description: 为 LLM 指令文件中的操作添加本地化标注，让 LLM 使
 1. **避免重复标注**：检测行尾是否已有语言标注
 2. **保持格式**：不改变原有文本的缩进和结构
 3. **智能识别**：仅对输出类操作添加标注，不对读取/查询类操作添加
+
+## 实践洞察
+
+### 核心判断原则
+
+**是否需要标注 = 该指令是否要求 LLM 生成内容**
+
+不要死记硬背关键词，而是理解指令的**意图**：
+
+| 需要标注（LLM生成内容） | 不需要标注（参考/描述/占位） |
+|------------------------|---------------------------|
+| `Create DISCOVERY.md` | `See /templates/xxx.md` |
+| `Write to: file.md` | `Use template: /templates/xxx.md` |
+| `Output: Report content` | `Output: [What artifacts will be created]` ← 占位符 |
+| `Produces DISCOVERY.md`（在 `<output>` 标签中） | `Produces 2-4 commits` ← 描述性 |
+
+### 上下文决定语义
+
+同一个词在不同上下文中含义不同：
+
+```markdown
+<!-- 在 <output> 标签中 = LLM指令，需要标注 -->
+<output>
+After completion, create SUMMARY.md
+</output>
+
+<!-- 在正文中 = 描述性说明，不需要标注 -->
+This workflow produces DISCOVERY.md for Level 2-3.
+
+<!-- 方括号 = 人类占位符，不需要标注 -->
+Output: [What artifacts will be created]
+```
+
+### 常见陷阱
+
+**陷阱1：过度标注**
+```markdown
+❌ See /templates/summary.md（要求：使用中文）  ← 错误！只是引用路径
+✅ See /templates/summary.md
+```
+
+**陷阱2：遗漏标注**
+```markdown
+❌ After completion, create SUMMARY.md  ← 错误！LLM需要执行
+✅ After completion, create SUMMARY.md（要求：使用中文）
+```
+
+**陷阱3：混淆 `Output:` 的语义**
+```markdown
+❌ Output: [What artifacts will be created]（要求：使用中文）  ← 错误！这是占位符
+✅ Output: [What artifacts will be created]
+
+❌ Output: DISCOVERY.md with recommendation  ← 错误！需要标注
+✅ Output: DISCOVERY.md with recommendation（要求：使用中文）
+```
+
+### 快速检查清单
+
+标注前问自己：
+
+1. **谁在执行？** LLM 执行 → 标注；人类执行/参考 → 不标注
+2. **什么内容？** 生成新内容 → 标注；引用已有内容 → 不标注
+3. **方括号？** `[占位符]` → 不标注（留给人类填写）
+4. **XML标签？** `<output>`、`<step>` 中的指令 → 通常需要标注
