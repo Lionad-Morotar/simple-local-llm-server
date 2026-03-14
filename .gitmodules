@@ -37,3 +37,6 @@
 [submodule "local-link/skills/bilibili-cli-skill"]
 	path = local-link/skills/bilibili-cli-skill
 	url = https://github.com/Lionad-Morotar/bilibili-cli-skill.git
+[submodule "local-link/skills/xhs-cli-skill"]
+	path = local-link/skills/xhs-cli-skill
+	url = https://github.com/Lionad-Morotar/xhs-cli-skill.git
