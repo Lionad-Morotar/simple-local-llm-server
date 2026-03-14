@@ -62,7 +62,6 @@ TeamCreate:
 name: search-agent-{n}
 subagent_type: general-purpose
 team_name: search-web
-# 为了让子代理能够使用主代理的 MCP 工具，**必须省略 `tools` 参数**。
 prompt: |
   搜索："{query}"
 

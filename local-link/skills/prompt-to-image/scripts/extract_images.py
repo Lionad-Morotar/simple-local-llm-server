@@ -5,6 +5,7 @@ Process API response and extract images from Gemini generateContent response.
 
 import json
 import base64
+import os
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -60,10 +61,12 @@ def extract_images_from_response(response_json_path: str, output_dir: str) -> li
                             image_path = output_path / f"{base_name}_{counter}{ext}"
                             counter += 1
 
-                        # Decode and save image
+                        # Decode and save image with fsync for durability
                         image_data = base64.b64decode(base64_data)
                         with open(image_path, 'wb') as img_file:
                             img_file.write(image_data)
+                            img_file.flush()
+                            os.fsync(img_file.fileno())  # 确保数据刷写到磁盘
 
                         extracted_paths.append(str(image_path))
                         print(f"Extracted: {image_path}")

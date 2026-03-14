@@ -4,6 +4,7 @@ Behance 项目归档到 Eagle
 """
 import re
 import json
+import asyncio
 from pathlib import Path
 from urllib.parse import urlparse
 from eagle_utils import (
@@ -13,7 +14,8 @@ from eagle_utils import (
     create_subfolder,
     rebuild_mtime_index,
     sanitize_filename,
-    download_image
+    download_image,
+    extract_with_playwright
 )
 
 # Behance 分类映射
@@ -22,6 +24,7 @@ FIELD_MAP = {
     "Graphic Design": "图形设计",
     "Branding": "图形设计",
     "Label Design": "图形设计",
+    "Art Direction": "广告",
     "Photography": "摄影",
     "UI/UX": "UI/UX",
     "Motion Graphics": "动画",
@@ -65,6 +68,92 @@ def get_target_folder_id(creative_field: str) -> str:
         raise ValueError(f"找不到文件夹: {chinese_name}")
 
     return folder_id
+
+
+async def extract_project_data(url: str) -> dict:
+    """
+    从 Behance 项目页面提取数据
+
+    使用泛化的页面加载策略，自动处理超时和降级
+
+    Args:
+        url: Behance 项目 URL
+
+    Returns:
+        项目数据字典，包含 title, creativeField, author, images
+    """
+    async def extract_fn(page):
+        return await page.evaluate("""() => {
+            const images = [];
+            document.querySelectorAll("img").forEach((img) => {
+                if (img.src && img.src.includes("mir-s3-cdn")) {
+                    images.push({
+                        src: img.src,
+                        alt: img.alt || "",
+                        width: img.naturalWidth || img.width,
+                        height: img.naturalHeight || img.height
+                    });
+                }
+            });
+
+            // 过滤并去重主项目图片
+            const mainImages = images.filter(img =>
+                img.src.includes("project_modules") &&
+                !img.src.includes("/projects/404/")
+            );
+
+            const uniqueImages = [];
+            const seen = new Set();
+            mainImages.forEach(img => {
+                if (!seen.has(img.src)) {
+                    seen.add(img.src);
+                    uniqueImages.push(img);
+                }
+            });
+
+            // 提取作者名
+            let author = "";
+            const ownerName = document.querySelector('[class*="Owner"] a, [data-testid="profile-name"], .e2e-Owner-name');
+            if (ownerName) {
+                author = ownerName.textContent.trim();
+            }
+
+            // 备用作者提取策略
+            if (!author) {
+                document.querySelectorAll("a").forEach(a => {
+                    const href = a.getAttribute("href");
+                    if (href && href.match(/behance\.net\/[^/]+$/)) {
+                        const text = a.textContent.trim();
+                        if (text && text.length > 0 &&
+                            text !== "Best of Behance" &&
+                            text !== "Help" &&
+                            text !== "Contact Us" &&
+                            !text.includes("Adobe")) {
+                            author = text;
+                        }
+                    }
+                });
+            }
+
+            // 提取 Creative Field
+            const fieldLink = document.querySelector('a[href*="field="]');
+
+            return {
+                title: document.querySelector("h1")?.textContent?.trim() || "",
+                creativeField: fieldLink?.textContent?.trim() || "",
+                author: author,
+                images: uniqueImages
+            };
+        }""")
+
+    # 使用泛化提取函数，策略从低到高（Behance 资源多，networkidle 容易超时）
+    return await extract_with_playwright(
+        url,
+        extract_fn,
+        wait_strategies=["domcontentloaded"],  # Behance 直接用 domcontentloaded
+        timeout=60000,
+        extra_wait=3.0  # 等待动态内容
+    )
 
 
 def archive_behance(url: str, star: int, project_data: dict):

@@ -50,8 +50,11 @@ processed_prompt=$(echo "$raw_prompt" | tr '\n' ' ' | sed 's/"/\\"/g')
 从环境配置文件读取 API 密钥：
 
 ```bash
-# 读取 ~/.config/prompt-to-image/.env 文件中的 API_KEY
-export $(grep -v '^#' ~/.config/prompt-to-image/.env | xargs)
+# 安全地展开 ~ 路径（兼容所有 shell）
+CONFIG_FILE="${HOME}/.config/prompt-to-image/.env"
+
+# 读取 API_KEY
+export $(grep -v '^#' "$CONFIG_FILE" | xargs)
 # 此时 $API_KEY 环境变量已可用
 ```
 
@@ -59,6 +62,11 @@ export $(grep -v '^#' ~/.config/prompt-to-image/.env | xargs)
 ```
 API_KEY=sk-your-api-key-here
 ```
+
+**⚠️ 路径安全提示**:
+- **推荐**: 使用 `"${HOME}/path"` 替代 `"~/path"`，确保在所有上下文（脚本、函数、引号内）都能正确展开
+- **避免**: 直接使用 `~`，因为在双引号内或某些 shell 函数中可能无法正确展开
+- **备用**: 如果必须使用 `~`，确保进行显式展开：`"${path/#\~/$HOME}"`
 
 **错误处理**: 如果配置文件不存在或无法读取，立即停止并提示用户创建配置文件。
 
@@ -91,7 +99,7 @@ curl -s --location --request POST \
 创建目录结构并保存完整响应:
 
 ```
-~/.prompt-to-image/
+${HOME}/.prompt-to-image/
   └── <YYYY-MM-DD>/
       └── grsapi.xyz/
           └── <model-name>/
@@ -102,6 +110,8 @@ curl -s --location --request POST \
 **时间戳格式**:
 - 日期: `2026-02-24`
 - 时间: `15-30-45.123` (小时-分钟-秒.毫秒)
+
+**路径安全**: 在脚本中使用 `${HOME}` 而非 `~`，确保路径在所有上下文中正确解析
 
 **保存后必须验证 JSON 有效性**:
 ```bash
@@ -118,9 +128,47 @@ python3 -c "import json; json.load(open('<response>.json'))" && echo "JSON valid
 python3 scripts/extract_images.py <response.json> <output_dir>
 ```
 
-### 8. 自动打开图片
+### 8. 等待文件同步完成（关键步骤）
 
-提取图片后，自动使用以下命令打开：
+**问题背景**: 文件写入和打开之间存在时间差，可能导致图片查看器加载失败。这在以下场景尤为明显：
+- 云同步目录（OneDrive、iCloud、Google Drive）
+- 网络文件系统
+- 高 I/O 负载环境
+
+**泛化解决方案** - 使用 `wait_for_file.sh` 脚本：
+
+```bash
+# 定义安全的输出目录路径（使用 ${HOME} 而非 ~）
+OUTPUT_DIR="${HOME}/.prompt-to-image/$(date +%Y-%m-%d)/grsapi.xyz/${MODEL_NAME}"
+mkdir -p "$OUTPUT_DIR"
+
+# 提取图片后，等待文件完全就绪
+python3 scripts/extract_images.py "$JSON_FILE" "$OUTPUT_DIR"
+
+# 获取最新生成的图片路径
+IMAGE_FILE=$(ls -t "$OUTPUT_DIR"/image_*.jpg "$OUTPUT_DIR"/image_*.png 2>/dev/null | head -1)
+
+# 等待文件写入完成（检测文件大小稳定 + 系统同步）
+# wait_for_file.sh 会自动处理路径中的 ~ 字符
+scripts/wait_for_file.sh "$IMAGE_FILE" 10  # 10秒超时
+```
+
+**检测机制**（跨平台泛化）：
+1. **文件存在检测** - 等待文件出现在文件系统
+2. **大小稳定性检测** - 连续两次检查文件大小不变（确保写入完成）
+3. **系统同步** - 执行 `sync` 命令刷新文件系统缓存
+4. **超时保护** - 默认10秒超时，防止无限等待
+
+**备选方案**（如果 wait_for_file.sh 不可用）：
+```bash
+# 简单延迟方案（不够精确但通用）
+sleep 0.5
+sync  # 强制刷新文件系统缓存
+```
+
+### 9. 自动打开图片
+
+文件同步完成后，使用以下命令打开：
 
 ```bash
 # 优先检查并使用 trae
@@ -131,15 +179,17 @@ else
 fi
 ```
 
-### 9. 返回结果
+### 10. 返回结果
 
 向用户返回 Markdown 格式的图片链接，并确认已自动打开:
 
 ```markdown
-![image name](~/.prompt-to-image/2026-02-24/grsapi.xyz/gemini-3-pro-image-preview/image_15-30-45.jpg)
+![image name](${HOME}/.prompt-to-image/2026-02-24/grsapi.xyz/gemini-3-pro-image-preview/image_15-30-45.jpg)
 
 ✅ 图片已自动打开
 ```
+
+**注意**: Markdown 中 `${HOME}` 不会自动展开，实际使用时应替换为完整路径或使用 shell 展开后的值
 
 ## 示例
 
@@ -167,7 +217,8 @@ fi
 
 ## 错误处理
 
-- **配置文件不存在**: 提示用户创建 `~/.config/prompt-to-image/.env` 文件并设置 API_KEY
+- **配置文件不存在**: 提示用户创建 `${HOME}/.config/prompt-to-image/.env` 文件并设置 API_KEY
+- **路径展开失败**: 确保使用 `${HOME}` 而非 `~`，特别是在双引号内的字符串中
 - **未找到提示词**: 提示用户请提供图片描述或先使用 image-to-prompt 生成提示词
 - **API 调用失败**: 立即停止，报告错误信息给用户，不尝试其他模型或重试
 - **提示词预处理错误**: 如果提示词包含无法处理的特殊字符，报告错误
@@ -182,6 +233,8 @@ fi
 2. **预处理优先**: 在调用 API 前必须对提示词进行预处理，避免 JSON 解析错误
 3. **使用 `-s` 静默模式**: curl 必须加 `-s` 参数，确保输出纯净 JSON
 4. **验证后再处理**: 保存响应后立即验证 JSON 有效性
+5. **文件同步等待**: 打开图片前必须确保文件完全写入磁盘，避免加载失败
+6. **路径安全**: 在脚本中始终使用 `${HOME}` 替代 `~`，确保路径在所有 shell 上下文中正确展开
 
 ## 资源
 
@@ -199,3 +252,37 @@ python3 scripts/extract_images.py <response.json> <output_dir>
 - 解码 base64 数据
 - 根据 MIME 类型保存为 `.jpg`、`.png` 等文件
 - 自动处理重名文件
+- **自动调用 `os.fsync()` 确保数据刷写到磁盘**
+
+### scripts/wait_for_file.sh
+
+泛化的文件写入完成检测脚本，解决文件写入与读取之间的时间差问题。
+
+**用法**:
+```bash
+scripts/wait_for_file.sh <文件路径> [超时秒数]
+```
+
+**检测机制**（跨平台泛化）：
+1. 文件存在检测 - 等待文件出现在文件系统
+2. 大小稳定性检测 - 连续两次检查文件大小不变
+3. 系统同步 - 执行 `sync` 命令刷新文件系统缓存
+4. 超时保护 - 默认10秒超时
+
+**适用场景**:
+- 云同步目录（OneDrive、iCloud、Google Drive）
+- 网络文件系统（NFS、SMB）
+- 高 I/O 负载环境
+- 任何需要确保文件完全写入的场景
+
+**路径展开**:
+该脚本会自动处理路径中的 `~` 字符，将其展开为 `${HOME}`:
+```bash
+# 脚本内部实现
+FILE_PATH="${FILE_PATH/#\~/$HOME}"
+```
+因此你可以安全地传入包含 `~` 的路径，或直接使用 `${HOME}`。
+
+**返回值**:
+- `0` - 文件就绪
+- `1` - 超时或错误

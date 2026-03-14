@@ -306,3 +306,114 @@ def download_image(url: str, dest_path: Path, headers: dict = None, max_retries:
                 raise
             import time
             time.sleep(1)
+
+
+async def load_page_with_fallback(
+    page,
+    url: str,
+    timeout: int = 60000,
+    wait_strategies: list = None,
+    extra_wait: float = 2.0
+) -> str:
+    """
+    泛化的页面加载函数，支持自动降级策略
+
+    当高优先级的加载策略（如 networkidle）超时时，自动降级到更低级的策略
+    （如 domcontentloaded），确保页面能够成功加载。
+
+    Args:
+        page: Playwright 页面对象
+        url: 要加载的 URL
+        timeout: 每个策略的超时时间（毫秒）
+        wait_strategies: 加载策略列表，按优先级排序。
+                        默认为 ["networkidle", "load", "domcontentloaded"]
+        extra_wait: 加载成功后额外等待的时间（秒），用于动态内容渲染
+
+    Returns:
+        实际使用的加载策略名称
+
+    Raises:
+        TimeoutError: 所有策略都失败时抛出
+
+    Example:
+        >>> strategy = await load_page_with_fallback(page, url, extra_wait=3.0)
+        >>> print(f"使用策略: {strategy}")
+    """
+    if wait_strategies is None:
+        # 默认策略：从高到低优先级
+        wait_strategies = ["networkidle", "load", "domcontentloaded"]
+
+    last_error = None
+
+    for strategy in wait_strategies:
+        try:
+            await page.goto(url, wait_until=strategy, timeout=timeout)
+            # 额外等待，确保动态内容加载
+            if extra_wait > 0:
+                import asyncio
+                await asyncio.sleep(extra_wait)
+            return strategy
+        except Exception as e:
+            last_error = e
+            print(f"   策略 '{strategy}' 失败，尝试降级...")
+            continue
+
+    # 所有策略都失败
+    raise TimeoutError(
+        f"所有加载策略都失败 ({', '.join(wait_strategies)})。"
+        f"最后错误: {last_error}"
+    )
+
+
+async def extract_with_playwright(
+    url: str,
+    extract_fn: callable,
+    wait_strategies: list = None,
+    timeout: int = 60000,
+    extra_wait: float = 2.0,
+    headless: bool = True
+) -> dict:
+    """
+    泛化的 Playwright 数据提取函数
+
+    封装了页面加载、数据提取和浏览器清理的完整流程，
+    处理常见的超时和加载问题。
+
+    Args:
+        url: 要访问的 URL
+        extract_fn: 在页面上执行的提取函数，接收 page 对象返回数据
+        wait_strategies: 页面加载策略列表
+        timeout: 加载超时时间（毫秒）
+        extra_wait: 加载后额外等待时间（秒）
+        headless: 是否使用无头模式
+
+    Returns:
+        extract_fn 返回的数据
+
+    Example:
+        >>> def extract_images(page):
+        ...     return page.evaluate("() => document.images.length")
+        >>> result = await extract_with_playwright(url, extract_images)
+    """
+    from playwright.async_api import async_playwright
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=headless)
+        page = await browser.new_page()
+
+        try:
+            # 使用降级策略加载页面
+            strategy = await load_page_with_fallback(
+                page, url,
+                timeout=timeout,
+                wait_strategies=wait_strategies,
+                extra_wait=extra_wait
+            )
+            print(f"   页面加载成功 (策略: {strategy})")
+
+            # 执行提取函数
+            result = await extract_fn(page)
+            return result
+
+        finally:
+            await browser.close()
