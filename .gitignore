@@ -11,3 +11,6 @@ node_modules/
 .output
 __pycache__
 tmp
+.planning/*
+!.planning/config.json
+!.planning/codebase 
