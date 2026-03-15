@@ -34,9 +34,12 @@
 [submodule "packages/kimi-search"]
 	path = packages/kimi-search
 	url = git@github.com:Lionad-Morotar/kimi-search.git
-[submodule "local-link/skills/bilibili-cli-skill"]
-	path = local-link/skills/bilibili-cli-skill
-	url = https://github.com/Lionad-Morotar/bilibili-cli-skill.git
+[submodule "local-link/skills/bilibili-skills"]
+	path = local-link/skills/bilibili-skills
+	url = https://github.com/Lionad-Morotar/bilibili-skills.git
 [submodule "local-link/skills/xhs-cli-skill"]
 	path = local-link/skills/xhs-cli-skill
 	url = https://github.com/Lionad-Morotar/xhs-cli-skill.git
+[submodule "syncs/gstack-cn"]
+	path = syncs/gstack-cn
+	url = git@github.com:Lionad-Morotar/gstack-cn.git
