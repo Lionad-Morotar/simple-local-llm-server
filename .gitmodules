@@ -43,6 +43,6 @@
 [submodule "syncs/gstack-cn"]
 	path = syncs/gstack-cn
 	url = git@github.com:Lionad-Morotar/gstack-cn.git
-[submodule "local-link/skills/github-repo-skills-skill"]
-	path = local-link/skills/github-repo-skills-skill
-	url = https://github.com/Lionad-Morotar/github-repo-skills-skill.git
+[submodule "local-link/skills/github-repo-skills"]
+	path = local-link/skills/github-repo-skills
+	url = https://github.com/Lionad-Morotar/github-repo-skills.git
