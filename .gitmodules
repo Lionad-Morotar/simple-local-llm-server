@@ -46,3 +46,6 @@
 [submodule "local-link/skills/github-repo-skills"]
 	path = local-link/skills/github-repo-skills
 	url = https://github.com/Lionad-Morotar/github-repo-skills.git
+[submodule "local-link/skills/chrome-cdp-skill-cn"]
+	path = local-link/skills/chrome-cdp-skill-cn
+	url = git@github.com:Lionad-Morotar/chrome-cdp-skill-cn.git
