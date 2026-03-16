@@ -49,3 +49,6 @@
 [submodule "local-link/skills/chrome-cdp-skill-cn"]
 	path = local-link/skills/chrome-cdp-skill-cn
 	url = git@github.com:Lionad-Morotar/chrome-cdp-skill-cn.git
+[submodule "syncs/claude-code-system-prompts-cn"]
+	path = syncs/claude-code-system-prompts-cn
+	url = https://github.com/Lionad-Morotar/claude-code-system-prompts-cn.git
