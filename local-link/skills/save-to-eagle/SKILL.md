@@ -208,7 +208,10 @@ Pixiv 需要 cookies 文件：
 │   ├── create_eagle_asset()    # 创建资源
 │   ├── create_subfolder()      # 创建子文件夹
 │   ├── set_folder_cover()      # 设置文件夹封面
-│   └── rebuild_mtime_index()   # 重建索引
+│   ├── rebuild_mtime_index()   # 重建索引
+│   ├── clean_mtime_json()      # 清理异常键
+│   ├── verify_asset_integrity() # 验证资源完整性
+│   └── repair_library()        # 修复素材库
 └── record_webpage.py    # 网页屏幕录制
 ```
 
@@ -221,8 +224,45 @@ python scripts/record_webpage.py "https://boardmix.cn" --duration 10
 python scripts/record_webpage.py "https://example.com" --scroll
 ```
 
+## 维护工具
+
+当 Eagle 出现启动缓慢、重建索引、资源不显示等问题时，使用维护工具：
+
+```python
+from eagle_utils import repair_library, clean_mtime_json, verify_asset_integrity
+
+# 一键修复素材库常见问题
+repair_library()
+
+# 单独清理 mtime.json 异常键
+clean_mtime_json()
+
+# 验证单个资源
+result = verify_asset_integrity('Kxxxxxxxxxxxx')
+print(result['valid'])  # True/False
+print(result['errors'])  # 错误列表
+```
+
+### 常见问题修复
+
+**Eagle 启动时重建索引（耗时很长）：**
+```python
+from eagle_utils import clean_mtime_json, rebuild_mtime_index
+
+# 清理异常键（通常有数千个）
+clean_mtime_json()
+
+# 重建索引
+rebuild_mtime_index()
+```
+
+**文件夹只显示部分资源：**
+- 通常是 mtime.json 被污染导致
+- 使用 `repair_library()` 一键修复
+
 ## 错误处理
 
 - 所有错误直接抛出给用户
 - 不自动重试失败的下载
 - 不自动处理认证问题
+- 新增资源时自动验证 ID 格式（13字符 K 开头）

@@ -71,14 +71,22 @@ def get_exif_orientation(img) -> int:
 
 
 def sanitize_filename(name: str, max_len: int = 80) -> str:
-    """清理文件名，替换特殊字符为下划线"""
+    """
+    清理文件名，替换空格和特殊字符为下划线
+
+    Eagle 对文件名中的空格和特殊字符敏感，可能导致显示问题。
+    所有非字母数字字符统一替换为下划线，确保兼容性。
+    """
     result = ""
     for c in name:
-        if c.isalnum() or c in ' -_()【】《》「」':
+        if c.isalnum():
             result += c
         else:
             result += '_'
-    return result[:max_len].strip()
+    # 合并连续的下划线
+    while '__' in result:
+        result = result.replace('__', '_')
+    return result[:max_len].strip('_')
 
 
 def create_eagle_asset(
@@ -264,15 +272,21 @@ def set_folder_cover(folder_id: str, asset_id: str):
 
 
 def rebuild_mtime_index():
-    """重建 mtime.json 索引"""
+    """
+    重建 mtime.json 索引
+
+    只包含有效的资源 ID（K 开头，13 字符），清理异常的文件夹 ID。
+    """
     mtime_data = {}
 
-    for asset_dir in LIBRARY_ROOT.glob('images/K*.info'):
+    for asset_dir in LIBRARY_ROOT.glob('images/*.info'):
         meta_path = asset_dir / 'metadata.json'
         if meta_path.exists():
             asset_id = asset_dir.name.replace('.info', '')
-            stat = meta_path.stat()
-            mtime_data[asset_id] = int(stat.st_mtime * 1000)
+            # 验证 ID 格式：K 开头，13 字符
+            if len(asset_id) == 13 and asset_id.startswith('K'):
+                stat = meta_path.stat()
+                mtime_data[asset_id] = int(stat.st_mtime * 1000)
 
     mtime_path = LIBRARY_ROOT / 'mtime.json'
     temp = mtime_path.with_suffix('.tmp')
@@ -280,6 +294,165 @@ def rebuild_mtime_index():
     temp.replace(mtime_path)
 
     print(f"  重建索引: {len(mtime_data)} 个资源")
+    return len(mtime_data)
+
+
+def clean_mtime_json():
+    """
+    清理 mtime.json 中的异常键
+
+    删除所有非标准资源 ID（非 K 开头或非 13 字符）。
+    返回清理的异常键数量。
+    """
+    mtime_path = LIBRARY_ROOT / 'mtime.json'
+
+    if not mtime_path.exists():
+        print("  mtime.json 不存在，跳过清理")
+        return 0
+
+    with open(mtime_path, 'r', encoding='utf-8') as f:
+        mtime_data = json.load(f)
+
+    original_count = len(mtime_data)
+
+    # 删除异常键
+    bad_keys = [k for k in mtime_data.keys()
+                if not (len(k) == 13 and k.startswith('K'))]
+
+    for key in bad_keys:
+        del mtime_data[key]
+
+    # 保存清理后的数据
+    temp = mtime_path.with_suffix('.tmp')
+    temp.write_text(json.dumps(mtime_data, ensure_ascii=False))
+    temp.replace(mtime_path)
+
+    removed_count = original_count - len(mtime_data)
+    if removed_count > 0:
+        print(f"  清理完成: 删除 {removed_count} 个异常键，剩余 {len(mtime_data)} 个资源")
+    else:
+        print(f"  无需清理，共 {len(mtime_data)} 个资源")
+
+    return removed_count
+
+
+def verify_asset_integrity(asset_id: str) -> dict:
+    """
+    验证单个资源的完整性
+
+    Args:
+        asset_id: 资源 ID
+
+    Returns:
+        验证结果字典，包含 'valid' 和 'errors' 字段
+    """
+    result = {'valid': True, 'errors': [], 'warnings': []}
+
+    asset_dir = LIBRARY_ROOT / 'images' / f'{asset_id}.info'
+    meta_path = asset_dir / 'metadata.json'
+
+    # 检查元数据文件
+    if not meta_path.exists():
+        result['valid'] = False
+        result['errors'].append('缺少 metadata.json')
+        return result
+
+    # 解析元数据
+    try:
+        meta = json.loads(meta_path.read_text(encoding='utf-8'))
+    except json.JSONDecodeError as e:
+        result['valid'] = False
+        result['errors'].append(f'metadata.json 格式错误: {e}')
+        return result
+
+    # 验证必需字段（会影响 Eagle 显示的关键字段）
+    required_fields = ['id', 'name', 'size', 'btime', 'mtime', 'ext',
+                       'width', 'height', 'modificationTime',
+                       'lastModified', 'folders', 'isDeleted']
+
+    for field in required_fields:
+        if field not in meta:
+            result['errors'].append(f'缺少字段: {field}')
+
+    # 可选字段（旧资源可能缺少，但不影响基本功能）
+    optional_fields = ['orientation', 'palettes', 'tags', 'annotation', 'url', 'star']
+    for field in optional_fields:
+        if field not in meta:
+            result['warnings'].append(f'缺少可选字段: {field}')
+
+    # 验证 ID 格式和一致性
+    if 'id' in meta:
+        if len(meta['id']) != 13:
+            result['errors'].append(f"ID 长度错误: {len(meta['id'])} (应为 13)")
+        if meta['id'] != asset_id:
+            result['errors'].append(f"ID 不一致: metadata 中是 {meta['id']}，目录名是 {asset_id}")
+
+    # 验证图片文件
+    if 'name' in meta and 'ext' in meta:
+        ext = meta['ext']
+        name = meta['name']
+        img_path = asset_dir / f'{name}.{ext}'
+        thumb_path = asset_dir / f'{name}_thumbnail.png'
+
+        if not img_path.exists():
+            result['errors'].append(f'缺少图片文件: {img_path.name}')
+        elif img_path.stat().st_size == 0:
+            result['errors'].append(f'图片文件为空: {img_path.name}')
+
+        if not thumb_path.exists():
+            result['warnings'].append(f'缺少缩略图: {thumb_path.name}')
+        elif thumb_path.stat().st_size == 0:
+            result['errors'].append(f'缩略图为空: {thumb_path.name}')
+
+    result['valid'] = len(result['errors']) == 0
+    return result
+
+
+def repair_library():
+    """
+    修复素材库的常见问题
+
+    执行以下修复：
+    1. 清理 mtime.json 中的异常键
+    2. 重建 mtime 索引
+    3. 验证所有资源的完整性
+    """
+    print("🔧 开始修复素材库...")
+    print()
+
+    # 1. 清理 mtime.json
+    print("1. 清理 mtime.json...")
+    cleaned = clean_mtime_json()
+    print()
+
+    # 2. 重建索引
+    print("2. 重建索引...")
+    count = rebuild_mtime_index()
+    print()
+
+    # 3. 验证资源完整性（抽样检查）
+    print("3. 验证资源完整性（抽样检查前 10 个）...")
+    import random
+    asset_dirs = list((LIBRARY_ROOT / 'images').glob('K*.info'))
+    sample = random.sample(asset_dirs, min(10, len(asset_dirs)))
+
+    invalid_count = 0
+    for asset_dir in sample:
+        asset_id = asset_dir.name.replace('.info', '')
+        result = verify_asset_integrity(asset_id)
+        if not result['valid']:
+            invalid_count += 1
+            print(f"  ❌ {asset_id}: {result['errors']}")
+
+    if invalid_count == 0:
+        print("  ✅ 抽样的资源全部正常")
+    else:
+        print(f"  ⚠️ 发现 {invalid_count} 个异常资源")
+
+    print()
+    print("✅ 修复完成！")
+    print(f"   - 清理异常键: {cleaned} 个")
+    print(f"   - 索引资源: {count} 个")
 
 
 def download_image(url: str, dest_path: Path, headers: dict = None, max_retries: int = 3) -> int:
@@ -301,7 +474,7 @@ def download_image(url: str, dest_path: Path, headers: dict = None, max_retries:
             response.raise_for_status()
             dest_path.write_bytes(response.content)
             return len(response.content)
-        except Exception as e:
+        except Exception:
             if attempt == max_retries - 1:
                 raise
             import time
