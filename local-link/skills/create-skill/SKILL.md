@@ -10,9 +10,9 @@ description: 创建新的 Claude Skill 项目，初始化 GitHub 仓库、本地
 ## 上下文
 
 * **技能名称（skill-name）**：从上下文识别用户意图抽取变量，若识别失败则创建几个选项询问用户做选择
-* **项目名称（project-name）**：`${<skill-name>}-skill`，即技能名称加后缀，但当心后缀重复
+* **项目名称（project-name）**：`${<skill-name>}-skills`，即技能名称加后缀，但当心后缀重复
 
-**注意**，技能名称不应当有后缀“-skill”，项目名称才需求
+**注意**，技能名称不应当有后缀“-skills”，项目名称才允许有（注意去重，避免出现 x-skill-skills 这种情况）
 
 ## 工作流程
 
