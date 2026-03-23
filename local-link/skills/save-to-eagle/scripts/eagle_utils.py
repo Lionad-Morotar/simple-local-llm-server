@@ -18,6 +18,7 @@ LIBRARY_ROOT = Path("/Users/lionad/Library/CloudStorage/OneDrive-Personal/素材
 FOLDER_IDS = {
     "Pixiv": "KMTBCL1D9MF66",
     "Behance": {
+        "未分类": "ytTDRfP4ebT0E",
         "插图": "7UAPMLRGTWT",
         "图形设计": "UWFE6X4QRC4",
         "摄影": "36QLX1XSJCC",

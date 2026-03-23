@@ -26,6 +26,7 @@ FIELD_MAP = {
     "Label Design": "图形设计",
     "Art Direction": "广告",
     "Photography": "摄影",
+    "Cinematography": "摄影",
     "UI/UX": "UI/UX",
     "Motion Graphics": "动画",
     "Typography": "字体设计",
@@ -57,17 +58,26 @@ def extract_project_info(url: str) -> dict:
     }
 
 
-def get_target_folder_id(creative_field: str) -> str:
+def get_target_folder_id(creative_fields: list) -> str:
     """
-    根据 Creative Field 获取目标文件夹 ID
+    根据 Creative Fields 列表获取目标文件夹 ID
+
+    Args:
+        creative_fields: Creative Field 列表，如 ["Branding", "Graphic Design"]
+
+    Returns:
+        目标文件夹 ID，未匹配时返回"未分类"
     """
-    chinese_name = FIELD_MAP.get(creative_field, "插图")  # 默认插图
-    folder_id = FOLDER_IDS["Behance"].get(chinese_name)
+    # 遍历字段列表，使用第一个能匹配的
+    for field in creative_fields:
+        if field in FIELD_MAP:
+            chinese_name = FIELD_MAP[field]
+            folder_id = FOLDER_IDS["Behance"].get(chinese_name)
+            if folder_id:
+                return folder_id
 
-    if not folder_id:
-        raise ValueError(f"找不到文件夹: {chinese_name}")
-
-    return folder_id
+    # 默认未分类
+    return FOLDER_IDS["Behance"]["未分类"]
 
 
 async def extract_project_data(url: str) -> dict:
@@ -135,24 +145,26 @@ async def extract_project_data(url: str) -> dict:
                 });
             }
 
-            // 提取 Creative Field
-            const fieldLink = document.querySelector('a[href*="field="]');
+            // 提取 Creative Fields（使用 js-creative-field 选择器）
+            const creativeFields = [...document.querySelectorAll(".js-creative-field p")]
+                .map(p => p.textContent.trim())
+                .filter(text => text.length > 0);
 
             return {
                 title: document.querySelector("h1")?.textContent?.trim() || "",
-                creativeField: fieldLink?.textContent?.trim() || "",
+                creativeFields: creativeFields,
                 author: author,
                 images: uniqueImages
             };
         }""")
 
-    # 使用泛化提取函数，策略从低到高（Behance 资源多，networkidle 容易超时）
+    # 使用泛化提取函数，优先 networkidle 获取 Creative Fields，失败则降级
     return await extract_with_playwright(
         url,
         extract_fn,
-        wait_strategies=["domcontentloaded"],  # Behance 直接用 domcontentloaded
-        timeout=60000,
-        extra_wait=3.0  # 等待动态内容
+        wait_strategies=["networkidle", "domcontentloaded"],
+        timeout=90000,
+        extra_wait=2.0
     )
 
 
@@ -177,21 +189,22 @@ def archive_behance(url: str, star: int, project_data: dict):
     print(f"   URL: {url}")
 
     title = project_data.get("title", "Unknown")
-    creative_field = project_data.get("creativeField", "")
+    creative_fields = project_data.get("creativeFields", [])
     author = project_data.get("author", "Unknown")
     images = project_data.get("images", [])
 
     print(f"   标题: {title}")
     print(f"   作者: {author}")
-    print(f"   分类: {creative_field}")
+    print(f"   分类: {creative_fields}")
     print(f"   图片数: {len(images)}")
 
     if not images:
         raise ValueError("没有找到可下载的图片")
 
-    # 确定目标文件夹
-    target_folder_id = get_target_folder_id(creative_field)
-    print(f"\n📁 目标文件夹: {FIELD_MAP.get(creative_field, creative_field)}")
+    # 确定目标文件夹（取第一个匹配的字段，默认未分类）
+    target_folder_id = get_target_folder_id(creative_fields)
+    folder_name = creative_fields[0] if creative_fields else "未分类"
+    print(f"\n📁 目标文件夹: {FIELD_MAP.get(folder_name, '未分类')}")
 
     # 创建项目子文件夹
     safe_name = sanitize_filename(title, max_len=60)
@@ -279,7 +292,7 @@ def archive_behance(url: str, star: int, project_data: dict):
         "platform": "Behance",
         "title": title,
         "author": author,
-        "creative_field": creative_field,
+        "creative_field": creative_fields[0] if creative_fields else "",
         "url": url,
         "downloaded": downloaded,
         "failed": failed
