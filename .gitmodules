@@ -52,3 +52,6 @@
 [submodule "syncs/claude-code-system-prompts-cn"]
 	path = syncs/claude-code-system-prompts-cn
 	url = https://github.com/Lionad-Morotar/claude-code-system-prompts-cn.git
+[submodule "syncs/Claude-Code-Game-Studios-cn"]
+	path = syncs/Claude-Code-Game-Studios-cn
+	url = git@github.com:Lionad-Morotar/Claude-Code-Game-Studios-cn.git
