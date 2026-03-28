@@ -30,20 +30,12 @@ curl -s http://localhost:9333/json/version
 
 如果返回结果显示 9333 端口正常运行，接下来直接使用 `chrome-devtools` 或 MCP 工具完成用户的需求，不必关心后续 prepare env 等步骤。
 
-2.1 prepare env
-
-```bash
-mkdir -p "$HOME/.config/edge/Default"
-cp -R "/Users/lionad/Library/Application Support/Microsoft Edge/Default" "$HOME/.config/edge/Default"
-```
-
-2.2 open a edge instance
+open a edge instance:
 
 ```bash
 nohup /Applications/Microsoft\ Edge.app/Contents/MacOS/Microsoft\ Edge \
     --remote-allow-origins=http://localhost:9333 \
-    --remote-debugging-port=9333 \
-    --user-data-dir="$HOME/.config/edge"
+    --remote-debugging-port=9333
 ```
 
 ## 技术细节
