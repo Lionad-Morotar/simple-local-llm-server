@@ -10,7 +10,7 @@ description: Automatically update GSD codebase documentation when code changes a
 
 ## 启动技能时
 1. 计算文档hash
-2. 不论 `$isOld` 创建定时器X，计时 10 分钟
+2. 不论 `$isOld` 创建定时器X，计时 60±10 分钟
 3. 每当项目有 git commit / git rebase / cherry-pick 等变更代码操作：
   3.1 重置定时器
 3.2 杀死可能的正在运行的子代理 `gsd-codebase-mapper` 
