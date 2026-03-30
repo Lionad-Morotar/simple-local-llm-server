@@ -68,6 +68,8 @@ url, star = parse_archive_args("https://www.pixiv.net/artworks/141349217, 3/5")
 
 ## 执行脚本
 
+### 单条归档
+
 解析参数后，通过命令行调用脚本：
 
 ```bash
@@ -77,6 +79,52 @@ python scripts/main.py "<URL>" --star <N>
 示例：
 ```bash
 python scripts/main.py "https://www.pixiv.net/artworks/141349217" --star 3
+```
+
+### 批量归档（URL 数量 > 6）
+
+**当需要归档的图片超过 6 张时，自动启用批量脚本**以避免触发反爬虫机制。
+
+**批量模式特点：**
+- 自动速率限制：每作品间隔 4-8 秒随机延迟
+- 自动错误隔离：单个失败不影响整体
+- 支持 Pixiv 和 Behance 混合 URL
+
+**使用方式：**
+
+1. **创建 URL 列表文件**（JSON 格式）：
+```bash
+cd ~/.claude/skills/save-to-eagle
+python scripts/batch_archive.py --template
+# 编辑生成的 batch_template.json
+```
+
+JSON 格式示例：
+```json
+[
+  {"url": "https://www.pixiv.net/artworks/142542530", "star": 4},
+  {"url": "https://www.pixiv.net/artworks/142565679", "star": 5},
+  {"url": "https://www.behance.net/gallery/123456", "star": 3}
+]
+```
+
+2. **执行批量归档**：
+```bash
+# 通过 main.py 调用（推荐）
+python scripts/main.py --batch urls.json
+
+# 或直接调用 batch_archive.py
+python scripts/batch_archive.py --input urls.json
+
+# 调整延迟参数（如需更快/更慢）
+python scripts/main.py --batch urls.json --delay-min 3 --delay-max 6
+```
+
+3. **命令行直接传入**（少量 URL）：
+```bash
+python scripts/batch_archive.py \
+  --urls "url1" "url2" "url3" \
+  --stars 4 5 3
 ```
 
 ## Pixiv 归档流程
@@ -201,7 +249,8 @@ Pixiv 需要 cookies 文件：
 
 ```
 ~/.claude/skills/save-to-eagle/scripts/
-├── main.py              # 入口，URL 路由
+├── main.py              # 入口，URL 路由（支持单条/批量模式）
+├── batch_archive.py     # 批量归档（带反爬虫速率限制）
 ├── pixiv.py             # Pixiv 归档逻辑（支持多图封面设置）
 ├── behance.py           # Behance 归档逻辑
 ├── eagle_utils.py       # 共用工具函数
@@ -213,6 +262,13 @@ Pixiv 需要 cookies 文件：
 │   ├── verify_asset_integrity() # 验证资源完整性
 │   └── repair_library()        # 修复素材库
 └── record_webpage.py    # 网页屏幕录制
+```
+
+**日志归档位置：**
+```
+~/.claude/skills/save-to-eagle/logs/
+├── batch_pixiv_YYYYMMDD_HHMMSS.log
+└── ...
 ```
 
 **录制脚本用法：**

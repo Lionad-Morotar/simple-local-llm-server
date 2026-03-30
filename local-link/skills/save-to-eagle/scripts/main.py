@@ -4,10 +4,21 @@ save-to-eagle 主入口
 根据 URL 自动判断平台并归档到 Eagle
 
 用法:
+    # 单条归档
     python main.py <url> [--star N]
     python main.py "https://www.pixiv.net/artworks/123456" --star 3
+
+    # 批量归档（URL 数量 > 6 时自动启用速率限制）
+    python main.py --batch urls.json
+    python main.py --batch urls.json --delay-min 3 --delay-max 6
+
+批量模式说明:
+    - 自动反爬虫：每作品间隔 4-8 秒随机延迟（可调）
+    - 支持 Pixiv 和 Behance 混合 URL
+    - 自动保存日志到 logs/batch_YYYYMMDD_HHMMSS.json
 """
 import sys
+import subprocess
 import asyncio
 import argparse
 from pathlib import Path
@@ -72,11 +83,43 @@ async def archive(url: str, star: int = 0, behance_data: dict = None, single: bo
 
 async def main():
     parser = argparse.ArgumentParser(description="归档网络图片到 Eagle 素材库")
-    parser.add_argument("url", help="作品链接 (Behance 或 Pixiv)")
+    parser.add_argument("url", nargs="?", help="作品链接 (Behance 或 Pixiv)")
     parser.add_argument("--star", type=int, default=0, help="评分 (1-5星，默认为0)")
     parser.add_argument("--single", action="store_true", help="仅下载第一张图（仅 Pixiv 多图作品有效）")
 
+    # 批量模式参数
+    parser.add_argument("--batch", "-b", type=str, help="批量归档：JSON 文件路径（URL 数量 > 6 时建议启用）")
+    parser.add_argument("--delay-min", type=float, default=4.0, help="批量模式最小延迟（秒，默认 4）")
+    parser.add_argument("--delay-max", type=float, default=8.0, help="批量模式最大延迟（秒，默认 8）")
+    parser.add_argument("--log", "-l", type=str, help="批量模式日志文件路径（可选）")
+
     args = parser.parse_args()
+
+    # 批量模式
+    if args.batch:
+        print("🔄 批量归档模式（带反爬虫保护）")
+        print(f"   输入文件: {args.batch}")
+        print(f"   延迟: {args.delay_min}-{args.delay_max} 秒/作品")
+        print()
+
+        batch_script = scripts_dir / "batch_archive.py"
+        cmd = [
+            sys.executable, str(batch_script),
+            "--input", args.batch,
+            "--delay-min", str(args.delay_min),
+            "--delay-max", str(args.delay_max)
+        ]
+
+        if args.log:
+            cmd.extend(["--log", args.log])
+
+        result = subprocess.run(cmd)
+        sys.exit(result.returncode)
+
+    # 单条模式
+    if not args.url:
+        parser.print_help()
+        sys.exit(1)
 
     try:
         result = await archive(args.url, star=args.star, single=args.single)
