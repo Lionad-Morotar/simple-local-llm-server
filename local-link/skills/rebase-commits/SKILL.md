@@ -6,6 +6,7 @@ description: |
   (2) 用户想将多个相关 commits 合并为逻辑单元
   (3) 完成一个功能后需要清理 commit 历史
   (4) 提交历史混乱，需要重新组织
+disable-model-invocation: true
 ---
 
 # Rebase Commits

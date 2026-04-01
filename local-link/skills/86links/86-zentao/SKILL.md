@@ -1,6 +1,7 @@
 ---
 name: 86-zentao
 description: 登录 86Links 禅道系统，当用户说"查看禅道 bug"、"看我的 bug"、"登录禅道"、"zentao bug"时触发。
+disable-model-invocation: true
 ---
 
 ## 上下文

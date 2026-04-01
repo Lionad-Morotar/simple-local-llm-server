@@ -1,6 +1,7 @@
 ---
 name: deep-insight-workflow-beta
 description: 资料深度分析工作流（优化版），帮助用户从上传的资料中提取深度洞见、发现矛盾、构建框架。当用户需要深度分析资料、进行尽职调查、撰写综述、提取可执行计划时触发。使用依赖驱动的模块组合和子代理并行执行，防止上下文爆炸。
+disable-model-invocation: true
 ---
 
 # Deep Insight Workflow (Beta)
