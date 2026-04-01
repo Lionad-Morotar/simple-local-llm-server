@@ -1,6 +1,6 @@
 ---
 name: release-project
-description: "项目版本发布流程指导，帮助用户完成版本规划、Changelog 管理、版本号升级和 Git 标签创建。Use when: (1) 用户需要发布新版本 (2) 需要创建版本发布流程 (3) 需要管理版本号和 Changelog (4) 需要自动化版本发布"
+description: "项目版本发布流程指导，帮助用户完成版本规划、Changelog 管理、版本号升级、Git 标签创建和 npm 首次发布准备。Use when: (1) 用户需要发布新版本 (2) 需要创建版本发布流程 (3) 需要管理版本号和 Changelog (4) 需要自动化版本发布 (5) 需要检查 release 分支同步 (6) 首次 npm 发布准备"
 disable-model-invocation: true
 ---
 
@@ -8,9 +8,21 @@ disable-model-invocation: true
 
 指导项目版本发布的完整流程，从版本规划到 Git 标签创建。
 
+## 前置要求
+
+- 当前仓库使用 Git 进行版本控制
+- 项目配置了 `package.json`（Node.js 项目）或相应的版本管理文件
+- 具有 release 分支作为发布分支
+
 ## 工作流程
 
 ```
+┌─────────────────┐
+│  0. 分支检查     │
+│  (确保release    │
+│   分支最新)      │
+└────────┬────────┘
+         ▼
 ┌─────────────────┐
 │  1. 版本规划     │
 └────────┬────────┘
@@ -33,10 +45,57 @@ disable-model-invocation: true
 ┌─────────────────┐
 │  4. Git 提交    │
 │   & 标签        │
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│  5. 首次发布    │
+│    检测&准备    │
 └─────────────────┘
 ```
 
-## 1. 版本规划
+## 1. 分支检查
+
+**目标**：确保当前位于 `release` 分支，且代码与开发分支保持同步。
+
+### 检查步骤
+
+1. **检查当前分支**：
+   ```bash
+   git branch --show-current
+   ```
+   - 如果不在 `release` 分支，切换到 release 分支：`git checkout release`
+
+2. **确保 release 分支最新**：
+
+   **情况 A：用户在其他分支开发（如 develop/feature）**
+   ```bash
+   # 获取最新代码
+   git fetch origin
+
+   # 将开发分支合并到 release（假设开发分支是 develop）
+   git merge origin/develop --no-ff -m "chore: merge develop into release"
+   ```
+
+   **情况 B：用户已在 release 分支开发**
+   ```bash
+   # 只需拉取最新代码
+   git pull origin release
+   ```
+
+3. **验证工作区干净**：
+   ```bash
+   git status
+   ```
+   - 确保没有未提交的变更
+   - 如有变更，提交或暂存后再继续
+
+### 分支同步决策
+
+使用 Ask 工具询问用户：
+- "当前开发是否在 develop/feature 分支？如果是，我需要将最新代码合并到 release 分支。"
+- "是否需要创建 release 分支？（如果不存在）"
+
+## 2. 版本规划
 
 确定版本类型（遵循 Semantic Versioning）：
 
@@ -46,7 +105,7 @@ disable-model-invocation: true
 | `minor` | 新功能（向后兼容） | `1.0.0` → `1.1.0` |
 | `major` | 破坏性变更 | `1.0.0` → `2.0.0` |
 
-## 2. Changelog 整理
+## 3. Changelog 整理
 
 遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 规范。
 
@@ -136,7 +195,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] 版本号链接到对比页面（可选）
 - [ ] **用户已确认 Changelog 内容**
 
-## 3. 版本号升级
+## 4. 版本号升级
 
 根据项目类型选择升级方式：
 
@@ -159,7 +218,7 @@ npx standard-version --release-as [patch|minor|major]
 - 文档中的版本引用
 - lockfile 更新
 
-## 4. Git 提交与标签
+## 5. Git 提交与标签
 
 标准发布提交：
 
@@ -171,9 +230,81 @@ git commit -m "release: v<版本号>"
 # 创建标签
 git tag -a "v<版本号>" -m "Release v<版本号>"
 
-# 推送
+# 推送到远程
 git push origin main --tags
 ```
+
+## 6. 首次发布检测 & npm 准备
+
+**触发时机**：完成 "Git 提交 & 标签" 后
+
+### 检测逻辑
+
+```bash
+# 统计符合 v-* 格式的标签数量
+git tag -l "v*" | wc -l
+```
+
+**如果标签数量 == 1**（意味着这是第一次发布）：
+
+使用 Ask 工具询问用户：
+> "检测到这是您第一次发布此项目。是否需要我协助进行 npm 发布准备工作？包括：
+> - 从 GitHub 读取您的个人信息（author、repository 等）
+> - 完善 package.json 字段（keywords、license、bugs、homepage 等）
+> - 配置 publishConfig（registry、access）"
+
+### npm 发布准备流程
+
+如果用户确认需要准备：
+
+1. **获取 GitHub 用户信息**：
+   ```bash
+   gh api user -q '.login, .name, .email, .html_url'
+   ```
+
+2. **完善 package.json 字段**：
+   ```json
+   {
+     "author": "用户名 <邮箱> (个人主页)",
+     "repository": {
+       "type": "git",
+       "url": "git+https://github.com/用户名/仓库名.git"
+     },
+     "bugs": {
+       "url": "https://github.com/用户名/仓库名/issues"
+     },
+     "homepage": "https://github.com/用户名/仓库名#readme",
+     "keywords": ["keyword1", "keyword2", "keyword3"],
+     "license": "MIT",
+     "publishConfig": {
+       "registry": "https://registry.npmjs.org/",
+       "access": "public"
+     }
+   }
+   ```
+
+3. **提交发布准备变更**：
+   ```bash
+   git add package.json
+   git commit -m "chore: release prepare"
+   ```
+
+4. **验证 package.json 格式**：
+   ```bash
+   node -e "JSON.parse(require('fs').readFileSync('./package.json'))" && echo "格式正确"
+   ```
+
+### 首次发布额外检查清单
+
+- [ ] package.json 包含完整的 author 信息
+- [ ] repository 字段指向正确的 GitHub 仓库
+- [ ] bugs 和 homepage 字段已配置
+- [ ] keywords 包含相关关键词（至少 5 个）
+- [ ] license 已声明（MIT/ISC/Apache 等）
+- [ ] publishConfig 配置了正确的 registry
+- [ ] publishConfig.access 设置为 "public"（scoped 包必需）
+- [ ] 发布准备已提交：`chore: release prepare`
+- [ ] 运行 `npm publish --dry-run` 预览发布内容
 
 ## 可选：自动化脚本
 
@@ -203,13 +334,30 @@ git push origin main --tags
 
 ## 发布检查清单
 
+### 分支与同步
+- [ ] 当前位于 `release` 分支
+- [ ] release 分支已同步最新代码（来自 develop/main）
+- [ ] 工作区干净（无未提交变更）
+
+### 版本与文档
 - [ ] 版本类型已确定（patch/minor/major）
 - [ ] Changelog 已更新（含 Unreleased 内容迁移）
 - [ ] **用户已确认 Changelog 内容**
 - [ ] 日期格式正确（ISO 8601）
+
+### 验证与构建
 - [ ] 测试通过
 - [ ] 构建成功
 - [ ] 版本号已正确升级
-- [ ] Git commit 已创建
-- [ ] Git tag 已创建
+
+### Git 操作
+- [ ] Git commit 已创建（`release: v<版本号>`）
+- [ ] Git tag 已创建（`v<版本号>`）
 - [ ] 已推送到远程仓库
+
+### 首次发布额外检查（如适用）
+- [ ] package.json 字段已完善（author、repository、bugs、homepage）
+- [ ] keywords 包含相关关键词
+- [ ] publishConfig 已配置（registry、access）
+- [ ] 发布准备已提交（`chore: release prepare`）
+- [ ] 已通过 `npm publish --dry-run` 验证
