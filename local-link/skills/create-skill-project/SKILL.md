@@ -91,7 +91,7 @@ git push
 ## 安装
 
 ```bash
-npx skills add -g https://github.com/Lionad-Morotar/<project-name>
+npx skills add -g Lionad-Morotar/<project-name>
 ```
 
 ## 使用
