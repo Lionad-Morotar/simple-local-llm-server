@@ -55,3 +55,6 @@
 [submodule "syncs/Claude-Code-Game-Studios-cn"]
 	path = syncs/Claude-Code-Game-Studios-cn
 	url = git@github.com:Lionad-Morotar/Claude-Code-Game-Studios-cn.git
+[submodule "local-link/skills/llmfit-skills"]
+	path = local-link/skills/llmfit-skills
+	url = https://github.com/Lionad-Morotar/llmfit-skills.git
