@@ -37,6 +37,7 @@ disable-model-invocation: true
 
 | 文档                                                    | 说明                       |
 | ------------------------------------------------------- | -------------------------- |
+| [<name>](<path>)               | <description> |
 <!-- 根据不同情况添加文档资源，见下文 -->
 
 更新文档时优先更新到 `.planning/codebase/`。
@@ -66,3 +67,7 @@ disable-model-invocation: true
 | ------------------------------------------------------- | -------------------------- |
 | [UI.md](./.impeccable.md)               | 品牌风格、设计理念、视觉方向 |
 ```
+
+## 模版要求
+
+* 你应当使用简单直接的资源名，如 `[.planning/codebase/STACK.md](./.planning/codebase/STACK.md)` 就过于冗长不如 `[STACK.md](./.planning/codebase/STACK.md)`
