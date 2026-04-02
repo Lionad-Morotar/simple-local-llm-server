@@ -13,4 +13,7 @@ __pycache__
 tmp
 .planning/*
 !.planning/config.json
-!.planning/codebase 
+!.planning/codebase
+
+# Private skills (not published)
+local-link/skills/crosspost-skills 
