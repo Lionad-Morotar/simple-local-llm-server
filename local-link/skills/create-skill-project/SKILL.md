@@ -150,9 +150,10 @@ elif local_env.exists():
     load_dotenv(local_env)
 ```
 
-### 4. SKILL.md 中的安全提示
+### 4. SKILL.md 中的内容优化
 
-必须在 SKILL.md 中明确指示用户**手动创建配置文件**，禁止在聊天中发送凭证：
+4.1 SKILL.md 必须使用技能 `/skill-creator` 创建，已达到最优效果
+4.2 必须在 SKILL.md 中明确指示用户**手动创建配置文件**，禁止在聊天中发送凭证：
 
 ```markdown
 **DO NOT paste credentials in chat**. Instead:
