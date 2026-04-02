@@ -8,22 +8,21 @@ disable-model-invocation: true
 
 * 项目根目录: `$project_root`
 * gsd-docs: `$project_root/.planning/codebase/*.md`
-* agents.md: `$project_root/Agents.md`
-* claude.md: `$project_root/Claude.md`
+* A: `$project_root/Agents.md`
+* C: `$project_root/Claude.md`
 * 设计上下文: `$project_root/.impeccable.md`
 
 ## 工作步骤
 
-1. 如果不存在 agents.md 文件
-  1.1 如果存在 claude.md 文件，复制其内容到 agents.md
-  1.2 否则使用模版创建
-2. 如果存在 claude.md 文件，删除它并 `ln -s Agents.md Claude.md`
-3. 如果不存在设计上下文，但存在 `teach-impeccable` 技能，使用 Ask 工具询问用户是否执行 `teach-impeccable` 技能创建设计上下文
+0. 如果不存在 gsd-docs，但存在 `gsd:map-codebase` 技能，使用 Ask 工具询问用户是否执行 `gsd:map-codebase` 技能生成设计上下文相关文档
+1. 如果不存在 A 文件
+  1.1 如果存在 C 文件，复制其内容到 A
+  1.2 如果不存在 C，复制模版内容到 A，然后继续
+2. 如果存在 C 文件，删除它
+3. `ln -s {$project_root}/Agents.md {$project_root}/Claude.md`
+4. 如果不存在设计上下文，但存在 `teach-impeccable` 技能：使用 Ask 工具询问用户是否执行 `teach-impeccable` 技能创建设计上下文
 
 ## Agents.md 模版
-
-1. 如果不存在 gsd-docs，使用空内容初始化 Agents.md
-2. 如果存在 gsd-docs，按照以下内容初始化 Agents.md：
 
 ```markdown
 # AGENTS.md
@@ -36,6 +35,19 @@ disable-model-invocation: true
 
 | 文档                                                    | 说明                       |
 | ------------------------------------------------------- | -------------------------- |
+<!-- 根据不同情况添加文档资源，见下文 -->
+
+更新文档时优先更新到 `.planning/codebase/`。
+
+```
+
+## 补充 Agents.md 模版内容
+
+* 如果项目存在 gsd-docs（或刚刚已经生成），文档可这样补充：
+
+```markdown
+| 文档                                                    | 说明                       |
+| ------------------------------------------------------- | -------------------------- |
 | [STACK.md](./.planning/codebase/STACK.md)               | 技术栈、开发命令、部署流程 |
 | [STRUCTURE.md](./.planning/codebase/STRUCTURE.md)       | 目录结构、命名规范         |
 | [ARCHITECTURE.md](./.planning/codebase/ARCHITECTURE.md) | 架构模式、术语表           |
@@ -43,12 +55,9 @@ disable-model-invocation: true
 | [TESTING.md](./.planning/codebase/TESTING.md)           | 测试规范（待建立）         |
 | [INTEGRATIONS.md](./.planning/codebase/INTEGRATIONS.md) | 外部服务、环境变量         |
 | [CONCERNS.md](./.planning/codebase/CONCERNS.md)         | 技术债务、注意事项         |
-
-更新文档时优先更新到 `.planning/codebase/`。
-
 ```
 
-如果项目存在设计上下文，文档可这样补充：
+* 如果项目存在设计上下文，文档可这样补充：
 
 ```markdown
 | 文档                                                    | 说明                       |
