@@ -34,8 +34,8 @@ OPENCLAW_DEST="${OPENCLAW_SKILLS_DIR:-$HOME/.openclaw/skills}"
 
 # 打印 dry run 标识
 if [ "$DRY_RUN" = true ]; then
-  log "[link-skills] 🧪 DRY RUN MODE - No changes will be made"
-  log "[link-skills] ==========================================="
+  log_step "[link-skills] 🧪 DRY RUN MODE"
+  log_skip "[link-skills] No changes will be made"
 fi
 
 # 清理目标目录下无效的符号链接
@@ -75,7 +75,7 @@ link_to_dest() {
   local dest_root="$1"
   local name="$2"
 
-  log "[link-skills] ========== Linking to $name =========="
+  log_step "[link-skills] Linking to $name"
 
   # 先清理无效的链接
   cleanup_broken_symlinks "$dest_root"
@@ -87,7 +87,7 @@ link_to_dest() {
     step_link_skills "$SRC_ROOT" "$dest_root"
   fi
 
-  log "[link-skills] Done for $name"
+  log_ok "[link-skills] Done for $name"
 }
 
 # 链接到 Claude 技能目录
@@ -97,8 +97,8 @@ link_to_dest "$CLAUDE_DEST" "Claude"
 link_to_dest "$OPENCLAW_DEST" "OpenClaw"
 
 if [ "$DRY_RUN" = true ]; then
-  log "[link-skills] ==========================================="
-  log "[link-skills] 🧪 Dry run complete - no changes made"
+  log_step "[link-skills] Dry run complete"
+  log_skip "No changes made"
 else
-  log "[link-skills] All done."
+  log_step "[link-skills] All done"
 fi

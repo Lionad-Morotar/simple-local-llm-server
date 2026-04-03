@@ -11,6 +11,11 @@ safe_symlink() {
   mkdir -p "$dest_dir"
 
   if [ -L "$dest" ]; then
+    local current_target
+    current_target="$(readlink "$dest")"
+    if [ "$current_target" = "$src" ]; then
+      return 0
+    fi
     log "Removing existing symlink $dest"
     rm -f "$dest"
   elif [ -e "$dest" ]; then

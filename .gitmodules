@@ -58,3 +58,6 @@
 [submodule "local-link/skills/llmfit-skills"]
 	path = local-link/skills/llmfit-skills
 	url = https://github.com/Lionad-Morotar/llmfit-skills.git
+[submodule "local-link/skills/zhihu-skills"]
+	path = local-link/skills/zhihu-skills
+	url = https://github.com/Lionad-Morotar/zhihu-skills.git

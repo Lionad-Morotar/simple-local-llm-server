@@ -12,14 +12,12 @@ step_link_skills() {
   log "[link-skills] Max depth: $max_depth"
 
   if [ ! -d "$src_root" ]; then
-    log "[link-skills] No source skills directory found at $src_root. Nothing to do."
+    log_skip "[link-skills] No source skills directory found at $src_root. Nothing to do."
     return 0
   fi
 
   mkdir -p "$dest_root"
 
-  # 递归扫描（默认 3 层）：只要读到 SKILL.md（忽略大小写），就把该文件所在目录视作技能目录。
-  # 目标链接命名使用该目录 basename（扁平化到 $dest_root 下）。
   if ! [[ "$max_depth" =~ ^[0-9]+$ ]]; then
     warn "[link-skills] Invalid max_depth='$max_depth'. Fallback to 3."
     max_depth=3
@@ -48,7 +46,7 @@ step_link_skills() {
       dest_link="$dest_root/$skill_name"
 
       safe_symlink "$dir" "$dest_link"
-      log "[link-skills] Linked: $dest_link -> $dir"
+      log_ok "[link-skills] ${_C_BOLD}$skill_name${_C_RESET} -> $dir"
     fi
 
     [ "$depth" -gt 0 ] || return 0
@@ -64,11 +62,11 @@ step_link_skills() {
   _link_skills_scan_dir "$src_root" "$max_depth"
 
   if [ "$found_any" -eq 1 ]; then
-    log "[link-skills] Matched SKILL.md files: $found_count"
+    log_ok "[link-skills] ${_C_BOLD}$found_count${_C_RESET} skill(s) linked"
   fi
 
   if [ "$found_any" -eq 0 ]; then
-    log "[link-skills] No SKILL.md found under $src_root (dir max depth: $max_depth)."
+    log_skip "[link-skills] No SKILL.md found under $src_root (dir max depth: $max_depth)."
   fi
 }
 
@@ -83,12 +81,12 @@ step_link_skills_dry_run() {
   log "[link-skills] Max depth: $max_depth"
 
   if [ ! -d "$src_root" ]; then
-    log "[link-skills] ⚠️ No source skills directory found at $src_root"
+    log_skip "[link-skills] ⚠️ No source skills directory found at $src_root"
     return 0
   fi
 
   if [ ! -d "$dest_root" ]; then
-    log "[link-skills] 📁 Destination directory does not exist yet: $dest_root"
+    log_skip "[link-skills] 📁 Destination directory does not exist yet: $dest_root"
   fi
 
   if ! [[ "$max_depth" =~ ^[0-9]+$ ]]; then
@@ -124,19 +122,19 @@ step_link_skills_dry_run() {
         local current_target
         current_target="$(readlink "$dest_link" 2>/dev/null || echo "")"
         if [ "$current_target" = "$dir" ]; then
-          log "[link-skills] ✅ Already linked: $skill_name -> $dir"
+          log_ok "[link-skills] ✅ Already linked: ${_C_BOLD}$skill_name${_C_RESET}"
           existing=$((existing + 1))
         else
-          log "[link-skills] 🔄 Would update: $skill_name"
+          log_skip "[link-skills] 🔄 Would update: ${_C_BOLD}$skill_name${_C_RESET}"
           log "[link-skills]    Current:  $dest_link -> $current_target"
           log "[link-skills]    New:      $dest_link -> $dir"
           to_update=$((to_update + 1))
         fi
       elif [ -e "$dest_link" ]; then
-        log "[link-skills] ⚠️ Would overwrite (not a symlink): $skill_name"
+        warn "[link-skills] ⚠️ Would overwrite (not a symlink): $skill_name"
         to_update=$((to_update + 1))
       else
-        log "[link-skills] ➕ Would create: $dest_link -> $dir"
+        log_info "[link-skills] ➕ Would create: ${_C_BOLD}$skill_name${_C_RESET} -> $dir"
         to_create=$((to_create + 1))
       fi
     fi
@@ -153,14 +151,10 @@ step_link_skills_dry_run() {
 
   _link_skills_scan_dir_dry "$src_root" "$max_depth"
 
-  log "[link-skills] ----------------------------------------"
-  if [ "$found_any" -eq 1 ]; then
-    log "[link-skills] 📊 Summary: $found_count skill(s) found"
-    log "[link-skills]    ➕ To create: $to_create"
-    log "[link-skills]    🔄 To update: $to_update"
-    log "[link-skills]    ✅ Existing:  $existing"
-  else
-    log "[link-skills] No SKILL.md found under $src_root (dir max depth: $max_depth)."
-  fi
-  log "[link-skills] ----------------------------------------"
+  echo ""
+  log_step "[link-skills] Summary: $found_count skill(s) found"
+  log_ok "   ✅ Existing:  $existing"
+  log_info "   ➕ To create: $to_create"
+  log_skip "   🔄 To update: $to_update"
+  echo ""
 }
