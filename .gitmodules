@@ -61,3 +61,7 @@
 [submodule "local-link/skills/zhihu-skills"]
 	path = local-link/skills/zhihu-skills
 	url = https://github.com/Lionad-Morotar/zhihu-skills.git
+[submodule "design-md-cn"]
+	path = syncs/design-md-cn
+	url = git@github.com:Lionad-Morotar/awesome-design-md-cn.git
+	branch = translation/cn
