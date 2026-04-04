@@ -219,11 +219,11 @@ sync  # 强制刷新文件系统缓存
 文件同步完成后，使用以下命令打开：
 
 ```bash
-# 优先检查并使用 trae
-if command -v trae &> /dev/null; then
-    trae <图片路径>
+# 优先检查并使用 code
+if command -v code &> /dev/null; then
+    code <图片路径>
 else
-    open <图片路径>
+    open <图片所在目录>
 fi
 ```
 
