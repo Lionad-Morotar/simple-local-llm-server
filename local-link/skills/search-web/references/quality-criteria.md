@@ -167,29 +167,38 @@ Detailed scoring rubrics for the Evaluator-optimizer pattern in search-web skill
 
 ### When to Recommend COMPLETE
 
-**All must be true**:
-- Coverage ≥ 3
-- Source Quality ≥ 3
-- Consistency ≥ 3 (or contradictions documented and explained)
-- Specificity ≥ 3 for key claims
-- Sufficient to answer core research question
+**硬性标准（所有维度 > 4.5，即 = 5/5）**：
+
+| 维度 | 要求 | 说明 |
+|------|------|------|
+| 覆盖度 | = 5/5 | 所有关键角度深度覆盖，无缺口 |
+| 来源质量 | = 5/5 | 多个权威来源（官方、论文、GitHub 官方） |
+| 一致性 | = 5/5 | 强烈共识，矛盾已解决或有合理解释 |
+| 具体性 | = 5/5 | 贯穿始终的具体数据、基准、案例 |
+| 时效性 | = 5/5 | 最新进展，注明日期 |
+
+⚠️ **不允许综合判断**：任一维度 ≤4 必须标记为 CONTINUE_SEARCH。
 
 ### When to Recommend CONTINUE_SEARCH
 
-**Any of these**:
-- Coverage ≤ 2 (major gaps)
-- Source Quality ≤ 2 for critical claims
-- Consistency ≤ 2 with unresolved contradictions
-- Specificity ≤ 2 (need concrete data)
-- Core question cannot be confidently answered
+**任一维度未达标（≤ 4/5）**：
 
-### Diminishing Returns Detection
+| 维度 | 触发 CONTINUE 的条件 |
+|------|---------------------|
+| 覆盖度 | ≤ 4/5（存在任何缺口） |
+| 来源质量 | ≤ 4/5（非全权威来源） |
+| 一致性 | ≤ 4/5（存在未解决的矛盾） |
+| 具体性 | ≤ 4/5（缺乏具体数据支撑） |
+| 时效性 | ≤ 4/5（信息不够新） |
 
-Recommend COMPLETE if:
-- Previous round added minimal new information
-- Scores stable across 2+ rounds
-- New searches finding same sources repeatedly
-- User's quality threshold met
+⚠️ **硬性规则**：**任一维度 ≤ 4/5 必须标记为 CONTINUE_SEARCH**，不允许综合判断。
+
+### 轮次限制处理
+
+达到最大轮次（默认 4 轮）时：
+- 向用户报告当前各维度评分
+- 说明哪些维度未达标
+- 由用户决定是否接受当前结果或继续
 
 ## Example Evaluations
 
