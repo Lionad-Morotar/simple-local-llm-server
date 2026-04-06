@@ -24,5 +24,5 @@ safe_symlink() {
   fi
 
   ln -s "$src" "$dest"
-  log "Created symlink: $dest -> $src"
+  log_ok "Created symlink: $dest -> $src"
 }
